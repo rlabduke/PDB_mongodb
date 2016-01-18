@@ -6,8 +6,8 @@ from pdb_utils import MDB_PDB_validation
 
 class RNAvalidation(MDB_PDB_validation) :
 
-  def __init__(self,pdb_file) :
-    MDB_PDB_validation.__init__(self,pdb_file,validation_type='rna')
+  def __init__(self,pdb_file,mdb_document=None) :
+    MDB_PDB_validation.__init__(self,pdb_file,mdb_document=mdb_document)
     self.run_validation()
 
   def run_validation(self) :
