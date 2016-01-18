@@ -39,19 +39,25 @@ def get_args() :
 def run (out=sys.stdout, quiet=False) :
   args = get_args()
 
-  if args.validation_type == 'rna' :
-    from val_rna import RNAvalidation
-    validation_class = RNAvalidation(args.pdb_file_path)
-    if args.detail == 'file' : validation_class.add_file()
-    else : validation_class.add_residue()
-    validation_class.write_pretty_mdb_document()
+  validation_class = pdb_utils.MDB_PDB_validation(args.pdb_file_path)
+  if args.validation_type in ['rna','all'] :
+    doc = validation_class.mdb_document
+    if doc['summary']['contains_rna'] :
+      from val_rna import RNAvalidation
+      validation_class = RNAvalidation(args.pdb_file_path,
+                                       mdb_document=doc)
+      if args.detail == 'file' : validation_class.add_file()
+      else : validation_class.add_residue()
 
-  elif args.validation_type == 'clashscore' :
+  if args.validation_type in ['clashscore','all'] :
+    doc = validation_class.mdb_document
     from val_clashscore import CLASHSCOREvalidation
-    validation_class = CLASHSCOREvalidation(args.pdb_file_path)
+    validation_class = CLASHSCOREvalidation(args.pdb_file_path,
+                                       mdb_document=doc)
     if args.detail == 'file' : validation_class.add_file()
     else : validation_class.add_residue()
-    validation_class.write_pretty_mdb_document()
+
+  validation_class.write_pretty_mdb_document()
 
 
   exit()

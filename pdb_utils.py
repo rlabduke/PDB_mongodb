@@ -10,7 +10,7 @@ validation_types = ['all','rna','clashscore']
 
 class MDB_PDB_validation(object) :
  
-  __slots__ = ['set_mdb_document','run_validation','add_file','add_residue'] 
+  __slots__ = ['pdb_file', 'set_mdb_document','run_validation','add_file','add_residue'] 
   __slots__+= ['mdb_document','result','mdb_document']
   def __init__(self,pdb_file,mdb_document=None) :
     self.pdb_file = pdb_file
