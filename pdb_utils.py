@@ -51,6 +51,7 @@ def get_pdb_hierarchy(pdb_file) :
   input_pdb = iotbx.pdb.input(file_name=pdb_file)
   return input_pdb.construct_hierarchy()
 
+# mmCIF utils
 def get_deposit_date(block) :
   deposit_date,release_date = None,None
   keys = ['_database_PDB_rev.num','_database_PDB_rev.date']
@@ -82,6 +83,12 @@ def get_deposit_date(block) :
   return dd,rd
   return deposit_date,release_date
 
+def get_software(loop) :
+  software = {}
+  for row in loop.iterrows() :
+    software[row['_software.classification']] = row['_software.name']
+  return software
+
 def get_pdb_meta_data(pdbcif_fn,pdb_code=None) :
   import iotbx.cif
   assert os.path.exists(pdbcif_fn)
@@ -98,4 +105,6 @@ def get_pdb_meta_data(pdbcif_fn,pdb_code=None) :
   deposit_date,release_date = get_deposit_date(cif[pdb_code])
   pdb_meta_data['Deposition Date'] = deposit_date
   pdb_meta_data['Release Date'] = release_date
+  software = get_software(cif[pdb_code].get_loop("_software"))
+  pdb_meta_data['software'] = software
   return pdb_meta_data
