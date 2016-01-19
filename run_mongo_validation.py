@@ -10,17 +10,16 @@ def get_args() :
   parser.add_argument('--pdb_cif', dest='cif_fn', help='A pdb mmcif')
   parser.add_argument('--detail', dest='detail', help='file or residue')
   parser.add_argument('--write_out_file',
-    dest='write_out_file', help='write file')
+    dest='write_out_file', help='write file', action='store_const', const=True)
   vth = 'validation_type can be one of the following:\n%s  ' 
   parser.add_argument("--validation_type", dest='validation_type',
     help=vth % ', '.join(pdb_utils.validation_types))
   hs = 'A directory where the output document will be written'
   parser.add_argument('--outdir', dest='outdir', help=hs)
+  hs = 'don\'t cleanup downloaded files'
+  parser.add_argument('--dont-cleanup', dest='dont_cleanup', help=hs,
+                      action='store_const', const=True)
   args = parser.parse_args()
-
-  if not args.outdir : outdir = os.getcwd()
-  else : outdir = args.outdir
-  assert os.path.exists(outdir)
 
   if not args.cif_fn :
     assert len(args.pdb_code) == 4
@@ -29,15 +28,21 @@ def get_args() :
     print >> log, '%s downloaded' % pdbfn
   elif args.cif_fn :
     pdbfn = args.cif_fn
+    args.dont_cleanup = True
   else : RuntimeError("Must provide a pdb code at the least")
   setattr(args,'pdb_file_path',pdbfn)
 
+  if not args.validation_type : args.validation_type = 'all'
   if not args.detail : args.detail = 'file'
   assert args.detail in ['file','residue'],args.detail
   return args
 
 def run (out=sys.stdout, quiet=False) :
   args = get_args()
+
+  if not args.outdir : outdir = os.getcwd()
+  else : outdir = args.outdir
+  assert os.path.exists(outdir)
 
   validation_class = pdb_utils.MDB_PDB_validation(args.pdb_file_path)
   if args.validation_type in ['rna','all'] :
@@ -57,28 +62,20 @@ def run (out=sys.stdout, quiet=False) :
     if args.detail == 'file' : validation_class.add_file()
     else : validation_class.add_residue()
 
-  validation_class.write_pretty_mdb_document()
-
-
-  exit()
-  # get metaadata and run rna_validation
-  doc = pdb_utils.get_pdb_meta_data(pdbfn)
-  result = run_rna_validation(pdb_file=pdbfn)
-
-  if args.detail == 'file' : add_file(doc,result)
-  else : add_residue(doc,result)
-  import json
-  print json.dumps(doc, sort_keys=True,indent=4, separators=(',', ': '))
-  pdb_code = doc['_id']
-
   if args.write_out_file :
-    fn = os.path.join(outdir,'%s.rna_validate' % pdb_code)
+    if args.outdir :
+      bd = os.path.join(outdir,args.pdb_code[1,3])
+      if not os.path.exists(bd) : os.makedirs(bd)
+    else : bd = outdir
+    fn = os.path.join(bd,'%s.validate' % args.pdb_code)
     fle = open(fn,'w')
-    print >> fle, json.dumps(doc,indent=2, separators=(',', ': '))
+    validation_class.write_pretty_mdb_document(log=fle)
     fle.close()
-    print >> log, '%s written' % fn
-  if os.path.exists(pdbfn) :
+    print >> sys.stderr, '%s written' % fn
+  else : validation_class.write_pretty_mdb_document()
+  if os.path.exists(args.pdb_file_path) and not args.dont_cleanup :
     for k,fn in pdb_files.items() : os.remove(fn)
+    print >> sys.atderr, 'Cleaned up.'
 
 if (__name__ == "__main__") :
   run()
