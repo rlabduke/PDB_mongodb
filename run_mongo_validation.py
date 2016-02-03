@@ -2,8 +2,9 @@ import os,sys
 import argparse
 import pdb_utils
 
+log = sys.stderr
+
 def get_args() :
-  log = sys.stderr
   desc = "Run RNA validate on a given PDB code or a given mmCIF file"
   parser = argparse.ArgumentParser(description=desc)
   parser.add_argument('pdb_code', help='A pdb code')
@@ -21,6 +22,15 @@ def get_args() :
                       action='store_const', const=True)
   args = parser.parse_args()
 
+
+  if not args.validation_type : args.validation_type = 'all'
+  if not args.detail : args.detail = 'file'
+  assert args.detail in ['file','residue'],args.detail
+  return args
+
+def run (out=sys.stdout, quiet=False) :
+  args = get_args()
+
   if not args.cif_fn :
     assert len(args.pdb_code) == 4
     pdb_files = pdb_utils.get_pdb_files(args.pdb_code,pdbcif=True)
@@ -31,14 +41,6 @@ def get_args() :
     args.dont_cleanup = True
   else : RuntimeError("Must provide a pdb code at the least")
   setattr(args,'pdb_file_path',pdbfn)
-
-  if not args.validation_type : args.validation_type = 'all'
-  if not args.detail : args.detail = 'file'
-  assert args.detail in ['file','residue'],args.detail
-  return args
-
-def run (out=sys.stdout, quiet=False) :
-  args = get_args()
 
   if not args.outdir : outdir = os.getcwd()
   else : outdir = args.outdir
@@ -64,18 +66,18 @@ def run (out=sys.stdout, quiet=False) :
 
   if args.write_out_file :
     if args.outdir :
-      bd = os.path.join(outdir,args.pdb_code[1,3])
+      bd = os.path.join(outdir,args.pdb_code[1:3])
       if not os.path.exists(bd) : os.makedirs(bd)
     else : bd = outdir
     fn = os.path.join(bd,'%s.validate' % args.pdb_code)
     fle = open(fn,'w')
     validation_class.write_pretty_mdb_document(log=fle)
     fle.close()
-    print >> sys.stderr, '%s written' % fn
+    print >> log, '%s written' % fn
   else : validation_class.write_pretty_mdb_document()
   if os.path.exists(args.pdb_file_path) and not args.dont_cleanup :
     for k,fn in pdb_files.items() : os.remove(fn)
-    print >> sys.atderr, 'Cleaned up.'
+    print >> log, 'Cleaned up.'
 
 if (__name__ == "__main__") :
   run()

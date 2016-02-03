@@ -10,8 +10,8 @@ validation_types = ['all','rna','clashscore']
 
 class MDB_PDB_validation(object) :
  
-  __slots__ = ['pdb_file', 'set_mdb_document','run_validation','add_file','add_residue'] 
-  __slots__+= ['mdb_document','result','mdb_document']
+  __slots__ = ['pdb_file', 'set_mdb_document','run_validation','add_file'] 
+  __slots__+= ['add_residue','mdb_document','result','mdb_document']
   def __init__(self,pdb_file,mdb_document=None) :
     self.pdb_file = pdb_file
     self.set_mdb_document(mdb_document)
@@ -104,6 +104,8 @@ def get_software(block) :
     for row in loop.iterrows() :
       software[row['_software.classification']] = row['_software.name']
   else :
+    if '_software.classification' not in block.keys() or '_software.name' :
+      return None
     software[block['_software.classification']] = block['_software.name']
   return software
 
@@ -116,6 +118,7 @@ def get_computing(block) :
     assert len(keyl) == 2, m % k 
     if block[k] == "?" : continue
     computing[keyl[1]] = block[k]
+  if len(computing) : return
   return computing
 
 def get_pdb_meta_data(pdbcif_fn,pdb_code=None) :
@@ -132,15 +135,16 @@ def get_pdb_meta_data(pdbcif_fn,pdb_code=None) :
   pdb_meta_data['summary'] = get_pdb_summary(pdbcif_fn)
   # get summary
   pdb_meta_data['Experimental Method'] = cif[pdb_code]["_exptl.method"]
-  pdb_meta_data['Resolution'] = cif[pdb_code]["_refine.ls_d_res_high"]
+  if "_refine.ls_d_res_high" in cif[pdb_code].keys() :
+    pdb_meta_data['Resolution'] = cif[pdb_code]["_refine.ls_d_res_high"]
   # get dates
   deposit_date,release_date = get_deposit_date(cif[pdb_code])
   pdb_meta_data['Deposition Date'] = deposit_date
   pdb_meta_data['Release Date'] = release_date
   # get software
   software = get_software(cif[pdb_code])
-  pdb_meta_data['software'] = software
+  if software : pdb_meta_data['software'] = software
   # get computing
   computing = get_computing(cif[pdb_code])
-  pdb_meta_data['computing'] = computing
+  if computing : pdb_meta_data['computing'] = computing
   return pdb_meta_data
