@@ -129,12 +129,18 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
     reskey = MDBRes.get_residue_key()
     if reskey not in mdb_residues.keys() : mdb_residues[reskey] = MDBRes
     if detail == 'atom' :
-      MDBRes.deposit_atom(mdb_utils.MDBAtom(**atomd))
-    if log : mdb_utils.print_json_pretty(MDBRes.get_residue_mongodoc(),log)
+      mdb_residues[reskey].deposit_atom(mdb_utils.MDBAtom(**atomd))
+      #MDBRes.deposit_atom(mdb_utils.MDBAtom(**atomd))
+    #if log : mdb_utils.print_json_pretty(MDBRes.get_residue_mongodoc(),log)
   # mdb_residues is a dict where the keys are unique strings formed by 
   # concatenating pdb_id, model_id, chain_id, icode, resseq, altloc and resname
   # and values are mdb_utils.MDBResidue.
 
+  if log :
+    keys = mdb_residues.keys()
+    keys.sort()
+    for k in keys :
+      mdb_utils.print_json_pretty(mdb_residues[k].get_residue_mongodoc(),log)
   # clean up
   print >> sys.stderr, "Clening up ..."
   for t,fn in pdb_files_dict.items() :
