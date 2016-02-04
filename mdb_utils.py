@@ -1,3 +1,8 @@
+import json
+import sys
+
+def print_json_pretty(d,log=sys.stdout) :
+  print >> log, json.dumps(d,indent=4, separators=(',', ': '))
 
 class MDBAtom(object) :
 
@@ -33,7 +38,7 @@ class MDBResidue(object) :
 
   def get_residue_mongodoc(self) :
     al = [a.aet_atom_dict() for a in self.atoms]
-    d = {'_id':self.get_residue_key()
+    d = {'_id':self.get_residue_key(),
          'pdb_id':self.pdb_id,
          'model_id':self.model_id,
          'chain_id':self.chain_id,
@@ -48,7 +53,9 @@ class MDBResidue(object) :
     # this is suppose to be unique r each residue and
     # will be used as the _id in mongo
    key = ''
-    for attr in __slots__ :
-      if attr == 'atoms' : continue
-      key += attr.strip()
-    return key
+   for attr in self.__slots__ :
+     if attr == 'atoms' : continue
+     s = getattr(self,attr)
+     if s is None : continue 
+     key += s.strip()
+   return key

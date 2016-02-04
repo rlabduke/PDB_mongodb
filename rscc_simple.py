@@ -79,7 +79,7 @@ def get_fmodel(pdb_file,mtz_file,log=sys.stderr) :
     r_free_flags        = r_free_flags)
   return fmodel
 
-def get_rscc_mdb_residues(pdb_code) :
+def get_rscc_mdb_residues(pdb_code,log=None) :
   pdb_files_dict = pdb_utils.get_pdb_files(pdb_code)
   pdb_file = pdb_files_dict["pdb"]
   reflection_file = pdb_files_dict["hklmtz"]
@@ -95,6 +95,7 @@ def get_rscc_mdb_residues(pdb_code) :
     log=sys.stderr)
   mdb_residues = {}
   atomd = None
+  broadcastdetail = True
   for i, result_ in enumerate(rsc) :
     chain_id    = result_.id_str[:2].strip()
     altloc      = result_.id_str[3].strip()
@@ -109,10 +110,14 @@ def get_rscc_mdb_residues(pdb_code) :
             'altloc'   : altloc,
             'resname'  : resname}
     if 'residue' in dir(result_) :
-      broadcast('detail : residue')
+      if broadcastdetail :
+        broadcast('detail : residue')
+        broadcastdetail = False
       detail = 'residue'
     elif 'atom' in dir(result_) :
-      broadcast('detail : atom')
+      if broadcastdetail :
+        broadcast('detail : atom')
+        broadcastdetail = False
       detail = 'atom'
       atomd = {'name':result_.atom.name,
                'adp':result_.atom.b,
@@ -125,18 +130,38 @@ def get_rscc_mdb_residues(pdb_code) :
     if reskey not in mdb_residues.keys() : mdb_residues[reskey] = MDBRes
     if detail == 'atom' :
       MDBRes.deposit_atom(mdb_utils.MDBAtom(**atomd))
+    if log : mdb_utils.print_json_pretty(MDBRes.get_residue_mongodoc(),log)
   # mdb_residues is a dict where the keys are unique strings formed by 
   # concatenating pdb_id, model_id, chain_id, icode, resseq, altloc and resname
   # and values are mdb_utils.MDBResidue.
+
+  # clean up
+  print >> sys.stderr, "Clening up ..."
+  for t,fn in pdb_files_dict.items() :
+    os.remove(fn)
+
   return mdb_residues
 
 def run(args) :
-  desc = "Runn reak-space correlation given an mtz and pdb'"
+  desc = "Run real_space_correlation given a pdb id"
   parser = argparse.ArgumentParser(description=desc)
   parser.add_argument('pdb_id', help='A pdb code')
+  parser.add_argument('-o','--write_out_file',help='write out file',
+                      action='store_true')
+  parser.add_argument('-d','--out_directory',help='out directory')
   args = parser.parse_args()
   assert len(args.pdb_id) == 4
-  mdb_residues = get_rscc_mdb_residues(pdb_code = args.pdb_id)
+  if args.write_out_file :
+    assert args.out_directory, "Must specify an out directory - see help (-h)."
+    err ="Specified out directory doesn't exist"
+    assert os.path.exists(args.out_directory), err
+    outfn = os.path.join(args.out_directory,"%s.rsc" % args.pdb_id)
+    fle = open(outfn,'w')
+  else : fle = None
+  mdb_residues = get_rscc_mdb_residues(pdb_code = args.pdb_id,log=fle)
+  if args.write_out_file :
+    fle.close()
+    print >> sys.stderr, "%s written." % outfn
 
 if __name__ == '__main__' :
   run(sys.argv[1:])

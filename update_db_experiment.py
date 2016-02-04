@@ -23,6 +23,7 @@ def get_current_pdbs() :
 def get_json_pdb_ex_doc(pdb_id) :
   experiment = "/pdb/entry/experiment"
   pdbe_doc = pdbe_rest.get_request(experiment,pdb_id,True)
+  if pdbe_doc is None : return None
 # pdbe_doc = pdbe_rest.get_request(summary,pdb_id,True)
   pdbe_json_doc = json.loads(pdbe_doc)
   return pdbe_json_doc
@@ -42,39 +43,80 @@ def print_json_pretty(d,log=sys.stdout) :
   print >> log, json.dumps(d,indent=4, separators=(',', ': '))
 
 def run(args) :
-  desc = "Updates the db called 'experiment' on the pdb_info db on daneel."
-  parser = argparse.ArgumentParser(description=desc)
+  desc = """Updates the pdb_info.experiment on daneel. The script has the following steps :
+
+  - get a list of currently deposited pdbs (in allpdbs.l) 
+  - get a list of pdbs in pdb_info.experiment. 
+  - get a list of deposited pdbs missing from pdb_info.experiment
+  - iterate trough the missing pdbs :
+    - get the given pdb's experiment documenti[s] from the PDBe
+    - insert that/those document into pdb_info.experiment 
+
+"""
+  parser = argparse.ArgumentParser(description=desc,
+                                 formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument('-v','--verbose',help='Verbose outpur',
+                      action='store_true')
+  args = parser.parse_args()
+
+
+  # get a list of currently deposited pdbs (in allpdbs.l) 
   n_pdbs,pdbs = get_current_pdbs()
   print >> sys.stderr, 'There are currently %i deposited pdbs.' % n_pdbs
 
+
   # connect to mongo on daneel
   c = 'experiment'
-# c = 'file_info'
   mcon = mongodb_pdb_connect.Mongodb_PDB()
+
+
+  # get a list of pdbs in pdb_info.experiment
   n_pdbs_in_db,pdbs_in_db = mcon.get_existing_pdb_ids(collection=c)
   s = 'There are currently %i pdbs in the collection "%s".'
   print >> sys.stderr, s % (n_pdbs_in_db,c)
 
-  # get missing
+
+  # get a list of deposited pdbs missing from pdb_info.experiment
   missing = get_missing(pdbs,pdbs_in_db)
   s = 'There are currently %i pdbs missing from in the collection "%s".'
   print >> sys.stderr, s % (len(missing),c)
 
 
-  for pdb_id in missing[:1] :
-    print pdb_id
+  # iterate trough the missing pdbs
+  if len(missing) > 2000 : factor = 1000
+  else : factor = 100
+  factor = 100
+  print >> sys.stderr, '\n\nBegin iterating missing pdbs...\n'
+  msg = '\n%i records inserted - %.2f %% done.\n'
+  for i,pdb_id in enumerate(missing) :
+    if args.verbose : print >> sys.stderr, "working on %s..." % pdb_id
+    # get the given pdb's experiment document from the PDBe
     doc = get_json_pdb_ex_doc(pdb_id)
+    if doc is None :
+      s = '\nWARNING: Skipping %s -- PDBe request returned None\n' % pdb_id
+      print >> sys.stderr, s
+      continue
     # I am assuming that the documents are a dict of length 1 and the key
-    # is the pdb id with the value being a list of one dict (which is the one
-    #  we're after). But I am unsure that this is universal thus the foloowing.
+    # is the pdb id with the value being a list of one or more dict (which 
+    # is/are the one[s] we're after). But I am unsure that this is universal 
+    # thus the foloowing.
+    #print_json_pretty(doc)
     assert len(doc) == 1, doc
     assert len(doc.keys()) == 1,len(doc.keys())
     k = doc.keys()[0]
     assert k.upper() == pdb_id
     assert type(doc[k]) is list,type(doc[k])
-    assert len(doc[k]) == 1,len(doc[k])
     assert type(doc[k][0]) is dict,type(doc[k][0])
-    print_json_pretty(doc[k][0])
+    #print_json_pretty(doc[k][0])
+
+    # insert that/those document into pdb_info.experiment
+    for j,mdoc in enumerate(doc[k]) :
+      mdoc["_id"] = {"pdb_id":pdb_id,"n":j}
+      mcon.upsert_document(mdoc,c)
+      if args.verbose :
+        print >> sys.stderr, '  %s inserted into pdb_info.%s' % (pdb_id,c)
+      if i%factor == 0 : print >> sys.stderr, msg % (i,(i*100.0)/len(missing))
+  print >> sys.stderr, '\n\n%i total records inserted\n\n' % i
 
 if __name__ == '__main__' :
   run(sys.argv[1:])
