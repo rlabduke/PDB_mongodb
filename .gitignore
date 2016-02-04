@@ -4,3 +4,4 @@
 *.pyc
 sand/
 allpdbs.l
+mongodb_pdb_connect.py
