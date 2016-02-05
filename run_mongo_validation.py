@@ -1,6 +1,6 @@
 import os,sys
 import argparse
-import pdb_utils
+from utils import pdb_utils
 
 log = sys.stderr
 

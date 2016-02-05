@@ -8,8 +8,8 @@ import iotbx.pdb
 from libtbx import group_args
 from cctbx.array_family import flex
 from cStringIO import StringIO
-import mdb_utils
-import pdb_utils
+from utils import mdb_utils
+from utils import pdb_utils
 
 def broadcast(m, log = sys.stdout) :
   print >> log, "-"*79
