@@ -19,18 +19,10 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
   reflection_file = pdb_files_dict["hklmtz"]
   assert os.path.exists(pdb_file)
   assert os.path.exists(reflection_file)
-# rsc_params = real_space_correlation.master_params().extract()
-  fmodel = rscc_utils.get_fmodel(pdb_file,reflection_file)
-  pdb_hierarchy = pdb_utils.get_pdb_hierarchy(pdb_file)
-# rsc = real_space_correlation.simple(
-#   fmodel=fmodel,
-#   pdb_hierarchy=pdb_hierarchy,
-#   params=rsc_params,
-#   log=sys.stderr)
+
   rsc = rscc_utils.get_rscc_diff(
-    fmodel=fmodel,
-    pdb_hierarchy=pdb_hierarchy,
-    log=sys.stderr)
+    pdb_file=pdb_file,
+    reflection_file=reflection_file)
 
   mdb_residues = {}
   atomd = None
@@ -89,8 +81,8 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
       mdb_utils.print_json_pretty(mdb_residues[k].get_residue_mongodoc(),log)
   # clean up
   print >> sys.stderr, "Clening up ..."
-  for t,fn in pdb_files_dict.items() :
-    os.remove(fn)
+# for t,fn in pdb_files_dict.items() :
+#   os.remove(fn)
 
   return mdb_residues
 
