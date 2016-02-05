@@ -97,6 +97,7 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
   atomd = None
   broadcastdetail = True
   for i, result_ in enumerate(rsc) :
+#   print dir(result_);exit()
     chain_id    = result_.id_str[:2].strip()
     altloc      = result_.id_str[3].strip()
     resname     = result_.id_str[5:8].strip()
@@ -119,9 +120,11 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
         broadcast('detail : atom')
         broadcastdetail = False
       detail = 'atom'
+#'rscc','twoFo_DFc_value','Fo_DFc_value'
       atomd = {'name':result_.atom.name,
                'adp':result_.atom.b,
                'xyz':result_.atom.xyz,
+               'rscc':result_.cc,
                'occ':result_.atom.occ}
     else :
       raise RuntimeError("Could not resolve detail")
