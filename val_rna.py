@@ -2,7 +2,7 @@ from mmtbx.validation.rna_validate import rna_validation
 from mmtbx.monomer_library import server
 from mmtbx.monomer_library import pdb_interpretation
 import iotbx.pdb
-from pdb_utils import MDB_PDB_validation
+from utils.pdb_utils import MDB_PDB_validation
 
 class RNAvalidation(MDB_PDB_validation) :
 

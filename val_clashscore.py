@@ -2,7 +2,7 @@ import sys
 from mmtbx.validation.clashscore import clashscore
 from iotbx import file_reader
 import iotbx.pdb
-from pdb_utils import MDB_PDB_validation
+from utils.pdb_utils import MDB_PDB_validation
 
 class CLASHSCOREvalidation(MDB_PDB_validation) :
 
