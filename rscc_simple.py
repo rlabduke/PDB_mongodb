@@ -24,6 +24,7 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
   moddata = pdb_utils.ModelData(pdb_code)
   pdb_file = moddata.pdb_file
   reflection_file = moddata.mtz_file
+  resolution = moddata.d_min
   assert os.path.exists(pdb_file)
   assert os.path.exists(reflection_file)
 
@@ -41,13 +42,14 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
     resname     = result_.id_str[5:8].strip()
     resseq      = result_.id_str[9:13].strip()
     icode       = result_.id_str[14].strip()
-    resd = {'pdb_id'  : pdb_code,
-            'model_id' : None, 
-            'chain_id' : chain_id,
-            'icode'    : icode,
-            'resseq'   : resseq,
-            'altloc'   : altloc,
-            'resname'  : resname}
+    resd = {'pdb_id'     : pdb_code,
+            'model_id'   : None, 
+            'chain_id'   : chain_id,
+            'icode'      : icode,
+            'resseq'     : resseq,
+            'altloc'     : altloc,
+            'resname'    : resname,
+            'resolution' : resolution}
     if 'residue' in dir(result_) :
       if broadcastdetail :
         utils.broadcast('detail : residue')

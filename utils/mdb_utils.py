@@ -47,7 +47,7 @@ class MDBAtom(object) :
 class MDBResidue(object) :
 
   __slots__ = ['pdb_id','model_id','chain_id','icode']
-  __slots__+= ['resseq','altloc','resname','atoms']
+  __slots__+= ['resseq','altloc','resname','atoms','resolution']
 
   def __init__(self,**kwargs) :
     for key, value in kwargs.iteritems():
@@ -135,7 +135,16 @@ class MDBResidue(object) :
     return self.resname.upper() in reslist_na
 
   def get_residue_mongodoc(self) :
-    al = [a.aet_atom_dict() for a in self.atoms]
+#   al = [a.aet_atom_dict() for a in self.atoms]
+    al = {}
+    for a in self.atoms :
+      ad = a.aet_atom_dict()
+      atomname = ad['name'].strip()
+      ad.pop('name')
+      al[atomname] = ad
+    if self.is_protein : restyp = "protein"
+    elif self.is_nucleic_acid : restyp = "na"
+    else : retyp = None
     d = {'_id':self.get_residue_key(),
          'pdb_id':self.pdb_id,
          'model_id':self.model_id,
@@ -143,7 +152,9 @@ class MDBResidue(object) :
          'icode':self.icode,
          'resseq':self.resseq,
          'altloc':self.altloc,
-         'resname':self.resname}
+         'resname':self.resname,
+         'restype':restyp,
+         'resolution':self.resolution}
     if len(al) > 0 :
       d['atoms']  = al
       if self.resname.upper() in reslist+reslist_na :
@@ -155,7 +166,7 @@ class MDBResidue(object) :
     # will be used as the _id in mongo
    key = ''
    for attr in self.__slots__ :
-     if attr == 'atoms' : continue
+     if attr in ['atoms','resolution'] : continue
      s = getattr(self,attr)
      if s is None : continue 
      key += s.strip()
