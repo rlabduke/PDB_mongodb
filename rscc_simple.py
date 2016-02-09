@@ -14,9 +14,16 @@ from utils import rscc_utils
 from utils import utils
 
 def get_rscc_mdb_residues(pdb_code,log=None) :
-  pdb_files_dict = pdb_utils.get_pdb_files(pdb_code)
-  pdb_file = pdb_files_dict["pdb"]
-  reflection_file = pdb_files_dict["hklmtz"]
+  # crreate and switch to temp directory
+  cwd = os.getcwd()
+  tempdir = "%s%i" % (pdb_code,sys.maxint)
+  os.makedirs(tempdir)
+  tempdir = os.path.abspath(tempdir)
+  os.chdir(tempdir)
+
+  moddata = pdb_utils.ModelData(pdb_code)
+  pdb_file = moddata.pdb_file
+  reflection_file = moddata.mtz_file
   assert os.path.exists(pdb_file)
   assert os.path.exists(reflection_file)
 
@@ -74,6 +81,7 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
   # concatenating pdb_id, model_id, chain_id, icode, resseq, altloc and resname
   # and values are mdb_utils.MDBResidue.
 
+  # add worst_bb, worse_sc, and worse_all
   if log :
     keys = mdb_residues.keys()
     keys.sort()
@@ -81,8 +89,10 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
       mdb_utils.print_json_pretty(mdb_residues[k].get_residue_mongodoc(),log)
   # clean up
   print >> sys.stderr, "Clening up ..."
-# for t,fn in pdb_files_dict.items() :
-#   os.remove(fn)
+  os.chdir(cwd)
+  for fn in os.listdir(tempdir) :
+    os.remove(os.path.join(tempdir,fn))
+  os.rmdir(tempdir)
 
   return mdb_residues
 
@@ -99,9 +109,10 @@ def run(args) :
     assert args.out_directory, "Must specify an out directory - see help (-h)."
     err ="Specified out directory doesn't exist"
     assert os.path.exists(args.out_directory), err
-    outfn = os.path.join(args.out_directory,"%s.rsc" % args.pdb_id)
+    absoutpath = os.path.abspath(args.out_directory)
+    outfn = os.path.join(absoutpath,"%s.rsc" % args.pdb_id)
     fle = open(outfn,'w')
-  else : fle = None
+  else : fle = sys.stdout
   mdb_residues = get_rscc_mdb_residues(pdb_code = args.pdb_id,log=fle)
   if args.write_out_file :
     fle.close()
