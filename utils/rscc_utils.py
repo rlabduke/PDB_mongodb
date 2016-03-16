@@ -5,6 +5,8 @@ from libtbx import group_args
 from cctbx.array_family import flex
 from cctbx import maptbx
 import utils
+from cStringIO import StringIO
+import iotbx.pdb
 from iotbx.file_reader import any_file
 
 def set_radius(d_min):
@@ -38,17 +40,21 @@ def get_rscc_diff(pdb_file,reflection_file,log=None) :
   #maps_in = any_file(mfn)
   #assert (len(maps_in.file_server.miller_arrays) == 3)
   # generate_water_omit_map
+  # function  to get theses
   pdb_in = any_file(pdb_file)
   hierarchy = pdb_in.file_object.hierarchy
-  xrs = pdb_in.file_object.xray_structure_simple()
-  mtz_in = any_file(reflection_file)
-  # function  to get theses
-  f_obs = mtz_in.file_server.miller_arrays[0]
-  flags = mtz_in.file_server.miller_arrays[1]
-  flags = flags.customized_copy(data=flags.data()==1)
+  inputs = mmtbx.utils.process_command_line_args([pdb_file,reflection_file])
+  determine_data_and_flags_result = mmtbx.utils.determine_data_and_flags(
+    reflection_file_server = inputs.get_reflection_file_server(),
+    keep_going             = True, # don't stop if free flags are not present
+    log                    = StringIO())
+  f_obs = determine_data_and_flags_result.f_obs
+  r_free_flags = determine_data_and_flags_result.r_free_flags
+  xrs = iotbx.pdb.input(
+    file_name=inputs.pdb_file_names[0]).xray_structure_simple()
   fmodel = mmtbx.utils.fmodel_simple(
     f_obs=f_obs,
-    r_free_flags=flags,
+    r_free_flags=r_free_flags,
     scattering_table="n_gaussian",
     xray_structures=[xrs],
     bulk_solvent_correction=True,
