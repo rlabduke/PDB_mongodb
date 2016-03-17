@@ -5,11 +5,13 @@ from utils import pdb_utils
 log = sys.stderr
 
 def get_args() :
-  desc = "Run RNA validate on a given PDB code or a given mmCIF file"
+  desc = "This script runs various validation programs on a given PDB"
+  desc+= " or mmcif file and returns a JSON document(s) having the various"
+  desc+= " validation criteria for the given pdb."
   parser = argparse.ArgumentParser(description=desc)
   parser.add_argument('pdb_code', help='A pdb code')
   parser.add_argument('--pdb_cif', dest='cif_fn', help='A pdb mmcif')
-  parser.add_argument('--detail', dest='detail', help='file or residue')
+  parser.add_argument('-d','--detail', dest='detail', help='file or residue')
   parser.add_argument('--write_out_file',
     dest='write_out_file', help='write file', action='store_const', const=True)
   vth = 'validation_type can be one of the following:\n%s  ' 
@@ -46,23 +48,22 @@ def run (out=sys.stdout, quiet=False) :
   else : outdir = args.outdir
   assert os.path.exists(outdir)
 
-  validation_class = pdb_utils.MDB_PDB_validation(args.pdb_file_path)
+  # MDB_PDB_validation will get meta data from the pdb_file. If the detail
+  # is file, it will initiate the mdb_document (an attribute of the class)
+  # with the meta data. Meta datfa here refers to resoluton, deposition date,
+  # Experimental Method, and summary info on molecule contents (aa, hoh, na,
+  # protein, and rna)
+  validation_class = pdb_utils.MDB_PDB_validation(pdb_file = args.pdb_file_path,
+                                                  detail   = args.detail)
+  meta_data = validation_class.meta_data
   if args.validation_type in ['rna','all'] :
-    doc = validation_class.mdb_document
-    if doc['summary']['contains_rna'] :
-      from val_rna import RNAvalidation
-      validation_class = RNAvalidation(args.pdb_file_path,
-                                       mdb_document=doc)
-      if args.detail == 'file' : validation_class.add_file()
-      else : validation_class.add_residue()
+    if meta_data['summary']['contains_rna'] :
+      validation_class.run_rna_validation()
 
   if args.validation_type in ['clashscore','all'] :
-    doc = validation_class.mdb_document
-    from val_clashscore import CLASHSCOREvalidation
-    validation_class = CLASHSCOREvalidation(args.pdb_file_path,
-                                       mdb_document=doc)
-    if args.detail == 'file' : validation_class.add_file()
-    else : validation_class.add_residue()
+    validation_class.run_clashscore_validation()
+
+
 
   if args.write_out_file :
     if args.outdir :

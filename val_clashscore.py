@@ -3,12 +3,17 @@ from mmtbx.validation.clashscore import clashscore
 from iotbx import file_reader
 import iotbx.pdb
 from utils.pdb_utils import MDB_PDB_validation
+import utils.mdb_utils
 
-class CLASHSCOREvalidation(MDB_PDB_validation) :
+class CLASHSCOREvalidation(object) :
 
-  def __init__(self,pdb_file,mdb_document=None) :
-    MDB_PDB_validation.__init__(self,pdb_file,mdb_document=mdb_document)
+  def __init__(self,pdb_file,detail,mdb_document) :
+    self.pdb_file    = pdb_file
+    self.detail      = detail
+    self.mdb_document= mdb_document
     self.run_validation()
+    if self.detail == 'file' : self.add_file()
+    elif self.detail == 'residue' : self.add_residue()
 
   def run_validation(self) :
     out = sys.stderr
@@ -27,9 +32,22 @@ class CLASHSCOREvalidation(MDB_PDB_validation) :
       nuclear=nuclear,
       out=out,
       verbose=verbose and not quiet)
-  
+ 
   def add_file(self) :
     self.mdb_document['clashscore'] = self.result.get_clashscore()
   
   def add_residue(self) :
-    pass
+    residues = [None,None]
+    for clash in self.result.results :
+      for i,atom in enumerate(clash.atoms_info) :
+        resd = {'pdb_id'     : self.mdb_document['_id'],
+                'model_id'   : None,
+                'chain_id'   : atom.chain_id,
+                'icode'      : atom.icode,
+                'resseq'     : atom.resseq,
+                'altloc'     : atom.altloc,
+                'resname'    : atom.resname,
+                'resolution' : self.mdb_document['Resolution']}
+        res = utils.mdb_utils.MDBResidue(**resd)
+        residues[i] = res
+

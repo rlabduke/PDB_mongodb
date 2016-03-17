@@ -4,11 +4,15 @@ from mmtbx.monomer_library import pdb_interpretation
 import iotbx.pdb
 from utils.pdb_utils import MDB_PDB_validation
 
-class RNAvalidation(MDB_PDB_validation) :
+class RNAvalidation(object) :
 
-  def __init__(self,pdb_file,mdb_document=None) :
-    MDB_PDB_validation.__init__(self,pdb_file,mdb_document=mdb_document)
+  def __init__(self,pdb_file,detail,mdb_document) :
+    self.pdb_file    = pdb_file
+    self.detail      = detail
+    self.mdb_document= mdb_document
     self.run_validation()
+    if self.detail == 'file' : self.add_file()
+    elif self.detail == 'residue' : self.add_residue()
 
   def run_validation(self) :
     # get required elements to run:

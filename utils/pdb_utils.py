@@ -11,20 +11,37 @@ class MDB_PDB_validation(object) :
  
   __slots__ = ['pdb_file', 'set_mdb_document','run_validation','add_file'] 
   __slots__+= ['add_residue','mdb_document','result','mdb_document']
-  def __init__(self,pdb_file,mdb_document=None) :
+  __slots__+= ['residues','meta_data','detail']
+  def __init__(self,pdb_file,detail,mdb_document=None) :
+    assert detail in ['file','residue'],detail
     self.pdb_file = pdb_file
+    self.detail = detail
     self.set_mdb_document(mdb_document)
 
   def set_mdb_document(self,mdb_document) :
     if mdb_document is not None : self.mdb_document = mdb_document;return
     pdb_in = file_reader.any_file(self.pdb_file)
     pdb_in.check_file_type('pdb')
-    self.mdb_document = get_pdb_meta_data(self.pdb_file)
+    self.meta_data = get_pdb_meta_data(self.pdb_file)
+    # if the detail of the output is 'file' then of course the meta data is
+    # relevent to the output.
+    if self.detail == 'file' : self.mdb_document = self.meta_data.copy()
+    else : self.mdb_document = None
 
   def write_pretty_mdb_document(self,log=sys.stdout) :
     sep = (',', ': ')
     s=json.dumps(self.mdb_document,sort_keys=True,indent=4,separators=sep)
     print >> log, s
+
+  def run_clashscore_validation(self) :
+    from val_clashscore import CLASHSCOREvalidation
+    vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document)
+    self.mdb_document = vc.mdb_document
+
+  def run_rna_validation(self) :
+    from val_rna import RNAvalidation
+    vc = RNAvalidation(self.pdb_file,self.detail,self.mdb_document)
+    self.mdb_document = vc.mdb_document
 
 class ModelData(object) :
 
