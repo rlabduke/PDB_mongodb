@@ -17,39 +17,16 @@ def set_radius(d_min):
   return atom_radius
 
 def get_rscc_diff(pdb_file,reflection_file,log=None) :
-#fmodel, pdb_hierarchy, params=None, log=None, show_results=False):
-  #params = master_params().extract()
-  #fmodel = get_fmodel(pdb_file   = pdb_file,
-  #                    mtz_file   = reflection_file,
-  #                    params     = params)
-  #pdb_hierarchy = pdb_utils.get_pdb_hierarchy(pdb_file)
-  #if(params is None): params =master_params().extract()
-  #if(log is None): log = sys.stdout
-  # compute map coefficients
-  #import mmtbx.maps.utils
-  #from libtbx.utils import null_out
-  #if pdb_file.endswith('.pdb') : mfn = pdb_file.replace('.pdb','_map.mtz')
-  #else : mfn = pdb_file + '_map.mtz'
-  #mmtbx.maps.utils.create_map_from_pdb_and_mtz(
-  #  pdb_file=pdb_file,
-  #  mtz_file=reflection_file,
-  #  output_file=mfn,
-  #  fill=False,
-  #  out=null_out())
-  #assert (os.path.isfile(mfn))
-  #maps_in = any_file(mfn)
-  #assert (len(maps_in.file_server.miller_arrays) == 3)
-  # generate_water_omit_map
-  # function  to get theses
   pdb_in = any_file(pdb_file)
   hierarchy = pdb_in.file_object.hierarchy
   inputs = mmtbx.utils.process_command_line_args([pdb_file,reflection_file])
-  determine_data_and_flags_result = mmtbx.utils.determine_data_and_flags(
+  data_and_flags = mmtbx.utils.determine_data_and_flags(
     reflection_file_server = inputs.get_reflection_file_server(),
     keep_going             = True, # don't stop if free flags are not present
     log                    = StringIO())
-  f_obs = determine_data_and_flags_result.f_obs
-  r_free_flags = determine_data_and_flags_result.r_free_flags
+  f_obs = data_and_flags.f_obs
+  r_free_flags = data_and_flags.f_obs.array(
+        data = flex.bool(data_and_flags.f_obs.size(), False))
   xrs = iotbx.pdb.input(
     file_name=inputs.pdb_file_names[0]).xray_structure_simple()
   fmodel = mmtbx.utils.fmodel_simple(

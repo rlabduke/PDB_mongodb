@@ -49,7 +49,7 @@ class ModelData(object) :
     self.pdb_id = pdb_id
     self.log = log
     self.extract_model()
-    self.extract_data()
+    #self.extract_data()
 
   def extract_model(self):
     from mmtbx.wwpdb import utils as wwpdb_utils
@@ -73,7 +73,7 @@ class ModelData(object) :
       merge_anomalous=False,
       crystal_symmetry=self.crystal_symmetry,
       log=self.log)
-    self.mtz_file = "%s_data.mtz" % self.pdb_id
+    self.mtz_file_filtered = "%s_data.mtz" % self.pdb_id
     self.filtered_data.write_mtz_file(self.mtz_file,
       title="Filtered data",
       single_dataset=True,

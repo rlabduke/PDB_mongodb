@@ -36,7 +36,6 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
   atomd = None
   broadcastdetail = True
   for i, result_ in enumerate(rsc) :
-#   print dir(result_);exit()
     chain_id    = result_.id_str[:2].strip()
     altloc      = result_.id_str[3].strip()
     resname     = result_.id_str[5:8].strip()
