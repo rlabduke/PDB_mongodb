@@ -60,6 +60,7 @@ def run (out=sys.stdout, quiet=False) :
                                                   detail   = args.detail,
                                                   pdb_code = args.pdb_code)
   meta_data = validation_class.meta_data
+  print >> log, meta_data
   if args.validation_type in ['rna','all'] :
     if meta_data['summary']['contains_rna'] :
       validation_class.run_rna_validation()
@@ -67,6 +68,8 @@ def run (out=sys.stdout, quiet=False) :
   if args.validation_type in ['clashscore','all'] :
     validation_class.run_clashscore_validation()
 
+  if args.validation_type in ['rotalyze','all'] :
+    validation_class.run_rotalyze()
 
 
   if args.write_out_file :
@@ -76,10 +79,15 @@ def run (out=sys.stdout, quiet=False) :
     else : bd = outdir
     fn = os.path.join(bd,'%s.validate' % args.pdb_code)
     fle = open(fn,'w')
+  else : fle = sys.stdout
+  if args.detail == 'file': 
     validation_class.write_pretty_mdb_document(log=fle)
+  else :
+    validation_class.write_pretty_residue_mdb_documents(log=fle)
+  if args.write_out_file :
     fle.close()
     print >> log, '%s written' % fn
-  else : validation_class.write_pretty_mdb_document()
+
   if os.path.exists(args.pdb_file_path) and not args.dont_cleanup :
     for k,fn in pdb_files.items() : os.remove(fn)
     print >> log, 'Cleaned up.'

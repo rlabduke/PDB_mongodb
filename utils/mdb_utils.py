@@ -48,6 +48,8 @@ class MDBResidue(object) :
 
   __slots__ = ['pdb_id','model_id','chain_id','icode']
   __slots__+= ['resseq','altloc','resname','atoms','resolution']
+  __slots__+= ['rotalyze_is_outlier','rotalyze_evaluation']
+  __slots__+= ['rotamer_name','rotamer_score']
 
   def __init__(self,**kwargs) :
     for key, value in kwargs.iteritems():
@@ -126,6 +128,12 @@ class MDBResidue(object) :
 
     return worst_bb,worst_sc,worst_all
 
+  def add_rotalyze_result(self,result) :
+    self.rotalyze_is_outlier = result.is_outlier()
+    self.rotalyze_evaluation = result.evaluation
+    self.rotamer_name        = result.rotamer_name
+    self.rotamer_score       = result.score
+
   def is_protein(self) :
     # Bases soley on resname
     return self.resname.upper() in reslist
@@ -153,21 +161,29 @@ class MDBResidue(object) :
          'resseq':self.resseq,
          'altloc':self.altloc,
          'resname':self.resname,
-         'restype':restyp,
-         'resolution':self.resolution}
+         'restype':restyp}
+    if hasattr(self,'resolution') : d['resolution'] = self.resolution
     if len(al) > 0 :
       d['atoms']  = al
       if self.resname.upper() in reslist+reslist_na :
         d['worst_bb'],d['worst_sc'],d['worst_all'] = self.get_worst()
+    if hasattr(self,'rotalyze_is_outlier') :
+      d['rotalyze_is_outlier'] = self.rotalyze_is_outlier
+      d['rotalyze_evaluation'] = self.rotalyze_evaluation
+      d['rotamer_name']        = self.rotamer_name
+      d['rotamer_score']       = self.rotamer_score
     return d
 
   def get_residue_key(self) :
     # this is suppose to be unique r each residue and
     # will be used as the _id in mongo
    key = ''
-   for attr in self.__slots__ :
+   l = ['pdb_id','model_id','chain_id','icode']
+   l+= ['resseq','altloc','resname','atoms','resolution']
+   for attr in l :
      if attr in ['atoms','resolution'] : continue
      s = getattr(self,attr)
      if s is None : continue 
-     key += s.strip()
+     if type(s) == str :   key += s.strip()
+     elif type(s) == int : key += '%i' % s
    return key

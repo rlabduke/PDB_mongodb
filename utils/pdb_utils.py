@@ -39,7 +39,7 @@ class MDB_PDB_validation(object) :
                     'model_id'   : None,
                     'chain_id'   : chain.id,
                     'icode'      : residue.icode,
-                    'resseq'     : residue.resseq,
+                    'resseq'     : residue.resseq_as_int(),
                     'altloc'     : conformer.altloc,
                     'resname'    : residue.resname}
             MDBRes = mdb_utils.MDBResidue(**resd)
@@ -61,6 +61,16 @@ class MDB_PDB_validation(object) :
     s=json.dumps(self.mdb_document,sort_keys=True,indent=4,separators=sep)
     print >> log, s
 
+  def write_pretty_residue_mdb_documents(self,log=sys.stdout) :
+    sep = (',', ': ')
+    residue_keys = self.residues.keys()
+    residue_keys.sort()
+    for rkey in residue_keys :
+      res = self.residues[rkey]
+      s=json.dumps(res.get_residue_mongodoc(),
+                   sort_keys=True,indent=4,separators=sep)
+      print >> log, s
+
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
     vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document,
@@ -71,6 +81,21 @@ class MDB_PDB_validation(object) :
     from val_rna import RNAvalidation
     vc = RNAvalidation(self.pdb_file,self.detail,self.mdb_document)
     self.mdb_document = vc.mdb_document
+
+  def run_rotalyze(self) :
+    from mmtbx.validation import rotalyze
+    rotalyze_result = rotalyze.rotalyze(self.hierarchy)
+    for result in rotalyze_result.results : 
+      resd = {'pdb_id'     : self.pdb_code,
+              'model_id'   : None,
+              'chain_id'   : result.chain_id,
+              'icode'      : result.icode,
+              'resseq'     : result.resseq_as_int(),
+              'altloc'     : result.altloc,
+              'resname'    : result.resname}
+      MDBRes = mdb_utils.MDBResidue(**resd)
+      reskey = MDBRes.get_residue_key()
+      self.residues[reskey].add_rotalyze_result(result)
 
 class ModelData(object) :
 
