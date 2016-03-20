@@ -48,13 +48,17 @@ def run (out=sys.stdout, quiet=False) :
   else : outdir = args.outdir
   assert os.path.exists(outdir)
 
-  # MDB_PDB_validation will get meta data from the pdb_file. If the detail
-  # is file, it will initiate the mdb_document (an attribute of the class)
-  # with the meta data. Meta datfa here refers to resoluton, deposition date,
-  # Experimental Method, and summary info on molecule contents (aa, hoh, na,
-  # protein, and rna)
+  # MDB_PDB_validation will get meta data from the pdb_file, the attribute is
+  # called meta_data. If the detail is file, it will initiate the mdb_document
+  # (an attribute of the class) with meta_data. Meta data here refers to
+  # resoluton, deposition date, experimental Method, and summary info 
+  # on molecule contents (aa, hoh, na, protein, and rna)
+  # If detail is residue then MDB_PDB_validation will have a residues object 
+  # which is a dict with keys being a res id and values being MDBResidue
+  # objects.
   validation_class = pdb_utils.MDB_PDB_validation(pdb_file = args.pdb_file_path,
-                                                  detail   = args.detail)
+                                                  detail   = args.detail,
+                                                  pdb_code = args.pdb_code)
   meta_data = validation_class.meta_data
   if args.validation_type in ['rna','all'] :
     if meta_data['summary']['contains_rna'] :

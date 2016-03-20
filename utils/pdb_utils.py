@@ -4,6 +4,7 @@ from iotbx import file_reader
 import iotbx.pdb
 import datetime
 import json
+import mdb_utils
 
 validation_types = ['all','rna','clashscore']
 
@@ -11,12 +12,39 @@ class MDB_PDB_validation(object) :
  
   __slots__ = ['pdb_file', 'set_mdb_document','run_validation','add_file'] 
   __slots__+= ['add_residue','mdb_document','result','mdb_document']
-  __slots__+= ['residues','meta_data','detail']
-  def __init__(self,pdb_file,detail,mdb_document=None) :
+  __slots__+= ['residues','meta_data','detail','hierarchy','pdb_code']
+  def __init__(self,pdb_file,detail,mdb_document=None,pdb_code=None) :
     assert detail in ['file','residue'],detail
     self.pdb_file = pdb_file
     self.detail = detail
+    self.pdb_code = pdb_code
+    if not pdb_code : self.pdb_code = 'N/A'
+    pdb_in = file_reader.any_file(pdb_file)
+    self.hierarchy = pdb_in.file_object.hierarchy
+    # keys are res ids and values are MDBResidue objects.
+    if self.detail == 'residue' :
+      self.initiate_residues()
     self.set_mdb_document(mdb_document)
+
+  # This initiates the residues dictionary with 'all' the residues in the given
+  # pdb. Because we do this step, subsequent reidue-level criteria will already
+  # have a MDBResidue to wich the criteria can be added to.
+  def initiate_residues(self) :
+    self.residues = {}
+    for chain in self.hierarchy.chains():
+      for residue_group in chain.residue_groups():
+        for conformer in residue_group.conformers():
+          for residue in conformer.residues():
+            resd = {'pdb_id'     : self.pdb_code,
+                    'model_id'   : None,
+                    'chain_id'   : chain.id,
+                    'icode'      : residue.icode,
+                    'resseq'     : residue.resseq,
+                    'altloc'     : conformer.altloc,
+                    'resname'    : residue.resname}
+            MDBRes = mdb_utils.MDBResidue(**resd)
+            reskey = MDBRes.get_residue_key()
+            self.residues[reskey] = MDBRes
 
   def set_mdb_document(self,mdb_document) :
     if mdb_document is not None : self.mdb_document = mdb_document;return
@@ -35,7 +63,8 @@ class MDB_PDB_validation(object) :
 
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
-    vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document)
+    vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document,
+           self.meta_data)
     self.mdb_document = vc.mdb_document
 
   def run_rna_validation(self) :

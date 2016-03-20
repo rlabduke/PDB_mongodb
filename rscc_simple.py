@@ -36,18 +36,13 @@ def get_rscc_mdb_residues(pdb_code,log=None) :
   atomd = None
   broadcastdetail = True
   for i, result_ in enumerate(rsc) :
-    chain_id    = result_.id_str[:2].strip()
-    altloc      = result_.id_str[3].strip()
-    resname     = result_.id_str[5:8].strip()
-    resseq      = result_.id_str[9:13].strip()
-    icode       = result_.id_str[14].strip()
     resd = {'pdb_id'     : pdb_code,
             'model_id'   : None, 
-            'chain_id'   : chain_id,
-            'icode'      : icode,
-            'resseq'     : resseq,
-            'altloc'     : altloc,
-            'resname'    : resname,
+            'chain_id'   : result_.chain_id,
+            'icode'      : result_.ins_code,
+            'resseq'     : result_.res_num,
+            'altloc'     : result_.alt_loc,
+            'resname'    : result_.res_name,
             'resolution' : resolution}
     if 'residue' in dir(result_) :
       if broadcastdetail :
