@@ -3,6 +3,8 @@ import sys
 from elbow.formats.protein_sequence_setup import protein_sequence_to_three
 from elbow.formats.dna_rna_sequence_parser import dna_rna_sequence_to_three
 from elbow.formats.protein_sequence_setup import protein_sequence_to_names
+from libtbx import group_args
+import re
 
 # protein
 l = ["ACE","NME"]
@@ -48,8 +50,7 @@ class MDBResidue(object) :
 
   __slots__ = ['pdb_id','model_id','chain_id','icode']
   __slots__+= ['resseq','altloc','resname','atoms','resolution']
-  __slots__+= ['rotalyze_is_outlier','rotalyze_evaluation']
-  __slots__+= ['rotamer_name','rotamer_score']
+  __slots__+= ['rotalyze','ramalyze','omegalyze','cablam']
 
   def __init__(self,**kwargs) :
     for key, value in kwargs.iteritems():
@@ -129,10 +130,44 @@ class MDBResidue(object) :
     return worst_bb,worst_sc,worst_all
 
   def add_rotalyze_result(self,result) :
-    self.rotalyze_is_outlier = result.is_outlier()
-    self.rotalyze_evaluation = result.evaluation
-    self.rotamer_name        = result.rotamer_name
-    self.rotamer_score       = result.score
+    #print dir(result);exit()
+    chi_angles = result.chi_angles
+    while None in chi_angles : chi_angles.remove(None)
+    self.rotalyze = group_args(
+        is_outlier          = result.is_outlier(),
+        rotalyze_evaluation = result.evaluation,
+        chi_angles          = chi_angles,
+        rotamer             = result.rotamer_name,
+        score               = result.score)
+
+  def add_ramalyze_result(self,result) :
+    #print dir(result);exit()
+    self.ramalyze = group_args(
+        is_outlier    = result.is_outlier(),
+        type          = result.ramalyze_type(),
+        phi           = result.phi,
+        psi           = result.psi,
+        score         = result.score)
+
+  def add_omegalyze_result(self,result) :
+    #print dir(result);exit()
+    self.omegalyze = group_args(
+        is_outlier    = result.is_outlier(),
+        omega         = result.omega,
+        type          = result.omegalyze_type())
+
+  def add_cablam_result(self,result) :
+    #print dir(result);exit()
+    self.cablam = group_args(
+         mu_in        = result.measures.mu_in,
+         mu_out       = result.measures.mu_out,
+         nu           = result.measures.nu,
+         ca_virtual   = result.measures.ca_virtual,
+         cablam       = result.scores.cablam,
+         c_alpha_geom = result.scores.c_alpha_geom,
+         alpha        = result.scores.alpha,
+         beta         = result.scores.beta,
+         threeten     = result.scores.threeten)
 
   def is_protein(self) :
     # Bases soley on resname
@@ -141,6 +176,18 @@ class MDBResidue(object) :
   def is_nucleic_acid(self) :
     # Bases soley on resname
     return self.resname.upper() in reslist_na
+
+  def get_module_dict(self,module) :
+    # module should point to a group_args object. This puts the contents
+    # thereof into a dict.
+    assert module in ['rotalyze','ramalyze','omegalyze','cablam']
+    regexob = re.compile('^__.*__')
+    nd = {}
+    modob = getattr(self,module)
+    for k in modob.__dict__ :
+      if regexob.match(k) : continue
+      nd[k] = getattr(modob,k)
+    return nd
 
   def get_residue_mongodoc(self) :
 #   al = [a.aet_atom_dict() for a in self.atoms]
@@ -167,11 +214,15 @@ class MDBResidue(object) :
       d['atoms']  = al
       if self.resname.upper() in reslist+reslist_na :
         d['worst_bb'],d['worst_sc'],d['worst_all'] = self.get_worst()
-    if hasattr(self,'rotalyze_is_outlier') :
-      d['rotalyze_is_outlier'] = self.rotalyze_is_outlier
-      d['rotalyze_evaluation'] = self.rotalyze_evaluation
-      d['rotamer_name']        = self.rotamer_name
-      d['rotamer_score']       = self.rotamer_score
+    regexob = re.compile('^__.*__')
+    if hasattr(self,'rotalyze') :
+      d['rotalyze'] = self.get_module_dict('rotalyze')
+    if hasattr(self,'ramalyze') :
+      d['ramalyze'] = self.get_module_dict('ramalyze')
+    if hasattr(self,'omegalyze') :
+      d['omegalyze'] = self.get_module_dict('omegalyze')
+    if hasattr(self,'cablam') :
+      d['cablam'] = self.get_module_dict('cablam')
     return d
 
   def get_residue_key(self) :

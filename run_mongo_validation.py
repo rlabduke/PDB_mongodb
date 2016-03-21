@@ -11,6 +11,7 @@ def get_args() :
   parser = argparse.ArgumentParser(description=desc)
   parser.add_argument('pdb_code', help='A pdb code')
   parser.add_argument('--pdb_cif', dest='cif_fn', help='A pdb mmcif')
+  parser.add_argument('--hkl_mtz',dest='hklmtz_fn',help='An hkl mtz')
   parser.add_argument('-d','--detail', dest='detail', help='file or residue')
   parser.add_argument('--write_out_file',
     dest='write_out_file', help='write file', action='store_const', const=True)
@@ -43,6 +44,14 @@ def run (out=sys.stdout, quiet=False) :
     args.dont_cleanup = True
   else : RuntimeError("Must provide a pdb code at the least")
   setattr(args,'pdb_file_path',pdbfn)
+  if not args.hklmtz_fn :
+    pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
+    hklmtzfn = pdb_files['hklmtz']
+    print >> log, '%s downloaded' % hklmtzfn
+  elif args.hklmtz_fn :
+    hklmtzfn = args.hklmtz_fn
+    args.dont_cleanup = True
+  setattr(args,'hklmtz_file_path',pdbfn)
 
   if not args.outdir : outdir = os.getcwd()
   else : outdir = args.outdir
@@ -57,8 +66,9 @@ def run (out=sys.stdout, quiet=False) :
   # which is a dict with keys being a res id and values being MDBResidue
   # objects.
   validation_class = pdb_utils.MDB_PDB_validation(pdb_file = args.pdb_file_path,
-                                                  detail   = args.detail,
-                                                  pdb_code = args.pdb_code)
+                                            hklmtz_file = args.hklmtz_file_path,
+                                                 detail   = args.detail,
+                                                 pdb_code = args.pdb_code)
   meta_data = validation_class.meta_data
   print >> log, meta_data
   if args.validation_type in ['rna','all'] :
@@ -70,6 +80,18 @@ def run (out=sys.stdout, quiet=False) :
 
   if args.validation_type in ['rotalyze','all'] :
     validation_class.run_rotalyze()
+
+  if args.validation_type in ['ramalyze','all'] :
+    validation_class.run_ramalyze()
+
+  if args.validation_type in ['omegalyze','all'] :
+    validation_class.run_omegalyze()
+
+  if args.validation_type in ['cablam','all'] :
+    validation_class.run_cablam()
+
+  if args.validation_type in []:#'rscc','all'] :
+    validation_class.run_rscc()
 
 
   if args.write_out_file :

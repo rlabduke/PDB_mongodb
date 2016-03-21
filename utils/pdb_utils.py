@@ -6,16 +6,19 @@ import datetime
 import json
 import mdb_utils
 
-validation_types = ['all','rna','clashscore']
+validation_types = ['all','rna','clashscore','rotalyze','ramalyze']
+validation_types+= ['omegalyze','cablam','rscc']
 
 class MDB_PDB_validation(object) :
  
-  __slots__ = ['pdb_file', 'set_mdb_document','run_validation','add_file'] 
-  __slots__+= ['add_residue','mdb_document','result','mdb_document']
+  __slots__ = ['pdb_file','hklmtz_file', 'set_mdb_document','run_validation']
+  __slots__+= ['add_file','add_residue','mdb_document','result','mdb_document']
   __slots__+= ['residues','meta_data','detail','hierarchy','pdb_code']
-  def __init__(self,pdb_file,detail,mdb_document=None,pdb_code=None) :
+  def __init__(self,pdb_file,hklmtz_file,
+               detail,mdb_document=None,pdb_code=None) :
     assert detail in ['file','residue'],detail
     self.pdb_file = pdb_file
+    self.hklmtz_file = hklmtz_file
     self.detail = detail
     self.pdb_code = pdb_code
     if not pdb_code : self.pdb_code = 'N/A'
@@ -96,6 +99,84 @@ class MDB_PDB_validation(object) :
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_rotalyze_result(result)
+
+  def run_ramalyze(self) :
+    from mmtbx.validation import ramalyze
+    ramalyze_result = ramalyze.ramalyze(self.hierarchy)
+    for result in ramalyze_result.results : 
+      #print dir(result);sys.exit()
+      resd = {'pdb_id'     : self.pdb_code,
+              'model_id'   : None,
+              'chain_id'   : result.chain_id,
+              'icode'      : result.icode,
+              'resseq'     : result.resseq_as_int(),
+              'altloc'     : result.altloc,
+              'resname'    : result.resname}
+      MDBRes = mdb_utils.MDBResidue(**resd)
+      reskey = MDBRes.get_residue_key()
+      self.residues[reskey].add_ramalyze_result(result)
+
+  def run_omegalyze(self) :
+    from mmtbx.validation import omegalyze
+    omegalyze_result = omegalyze.omegalyze(
+                               pdb_hierarchy = self.hierarchy,
+                               nontrans_only = False,
+                               out           = sys.stdout,
+                               quiet         = False)
+    for result in omegalyze_result.results : 
+      #print 'chain_id',result.chain_id
+      #print 'icode',result.icode
+      #print 'resseq as int',result.resseq_as_int()
+      #print 'altloc',result.altloc
+      #print 'resname',result.resname
+      #print dir(result);sys.exit()
+      resd = {'pdb_id'     : self.pdb_code,
+              'model_id'   : None,
+              'chain_id'   : result.chain_id,
+              'icode'      : result.icode,
+              'resseq'     : result.resseq_as_int(),
+              'altloc'     : result.altloc,
+              'resname'    : result.resname}
+      MDBRes = mdb_utils.MDBResidue(**resd)
+      reskey = MDBRes.get_residue_key()
+      self.residues[reskey].add_omegalyze_result(result)
+
+  def run_cablam(self) :
+    from mmtbx.validation import cablam
+    cablam_result = cablam.cablamalyze(
+                               pdb_hierarchy = self.hierarchy,
+                               outliers_only = False,
+                               out           = sys.stdout,
+                               quiet         = False)
+    t = True
+    for result in cablam_result.results :
+      #print 'chain',result.chain
+      #print 'chain_id',result.chain_id
+      #print 'icode',result.icode
+      #print 'resseq as int',result.resseq_as_int()
+      #print 'altloc',result.altloc
+      #print 'resname',result.resname
+      #print dir(result);sys.exit()
+      resd = {'pdb_id'     : self.pdb_code,
+              'model_id'   : None,
+              #'chain_id'   : result.chain_id,
+              'chain_id'   : result.chain,
+              'icode'      : result.icode,
+              'resseq'     : result.resseq_as_int(),
+              #'altloc'     : result.altloc,
+              'altloc'     : result.alt,
+              'resname'    : result.residue.resname}
+      MDBRes = mdb_utils.MDBResidue(**resd)
+      reskey = MDBRes.get_residue_key()
+      if reskey in self.residues.keys() :
+        self.residues[reskey].add_cablam_result(result)
+
+  def run_rscc(self) :
+    import val_rscc
+    rscob = val_rscc.RSCCvalidation(self.pdb_file,
+                                    self.hklmtz_file,
+                                    self.meta_data)
+    print rscob;sys.exit()
 
 class ModelData(object) :
 
