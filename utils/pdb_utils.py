@@ -124,11 +124,6 @@ class MDB_PDB_validation(object) :
                                out           = sys.stdout,
                                quiet         = False)
     for result in omegalyze_result.results : 
-      #print 'chain_id',result.chain_id
-      #print 'icode',result.icode
-      #print 'resseq as int',result.resseq_as_int()
-      #print 'altloc',result.altloc
-      #print 'resname',result.resname
       #print dir(result);sys.exit()
       resd = {'pdb_id'     : self.pdb_code,
               'model_id'   : None,
@@ -150,12 +145,6 @@ class MDB_PDB_validation(object) :
                                quiet         = False)
     t = True
     for result in cablam_result.results :
-      #print 'chain',result.chain
-      #print 'chain_id',result.chain_id
-      #print 'icode',result.icode
-      #print 'resseq as int',result.resseq_as_int()
-      #print 'altloc',result.altloc
-      #print 'resname',result.resname
       #print dir(result);sys.exit()
       resd = {'pdb_id'     : self.pdb_code,
               'model_id'   : None,
@@ -175,8 +164,11 @@ class MDB_PDB_validation(object) :
     import val_rscc
     rscob = val_rscc.RSCCvalidation(self.pdb_file,
                                     self.hklmtz_file,
+                                    self.pdb_code,
                                     self.meta_data)
-    print rscob;sys.exit()
+    for reskey,atomlist in rscob.mdb_residues.items() :
+      for atomd in atomlist :
+        self.residues[reskey].deposit_atom(mdb_utils.MDBAtom(**atomd))
 
 class ModelData(object) :
 

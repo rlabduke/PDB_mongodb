@@ -1,6 +1,7 @@
 import os,sys
 import argparse
 from utils import pdb_utils
+from utils import mdb_utils
 
 log = sys.stderr
 
@@ -46,12 +47,13 @@ def run (out=sys.stdout, quiet=False) :
   setattr(args,'pdb_file_path',pdbfn)
   if not args.hklmtz_fn :
     pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
+    pdb_files['pdbcif'] = args.pdb_file_path
     hklmtzfn = pdb_files['hklmtz']
     print >> log, '%s downloaded' % hklmtzfn
   elif args.hklmtz_fn :
     hklmtzfn = args.hklmtz_fn
     args.dont_cleanup = True
-  setattr(args,'hklmtz_file_path',pdbfn)
+  setattr(args,'hklmtz_file_path',hklmtzfn)
 
   if not args.outdir : outdir = os.getcwd()
   else : outdir = args.outdir
@@ -70,27 +72,36 @@ def run (out=sys.stdout, quiet=False) :
                                                  detail   = args.detail,
                                                  pdb_code = args.pdb_code)
   meta_data = validation_class.meta_data
-  print >> log, meta_data
+  print >> log, '*'*79 + '\nSummary:'
+  mdb_utils.print_json_pretty(meta_data,log)
+  print >> log, '*'*79
   if args.validation_type in ['rna','all'] :
+    print >> log, 'Running rna validation...\n'
     if meta_data['summary']['contains_rna'] :
       validation_class.run_rna_validation()
 
   if args.validation_type in ['clashscore','all'] :
+    print >> log, 'Running clashscore...\n'
     validation_class.run_clashscore_validation()
 
   if args.validation_type in ['rotalyze','all'] :
+    print >> log, 'Running rotalyze...\n'
     validation_class.run_rotalyze()
 
   if args.validation_type in ['ramalyze','all'] :
+    print >> log, 'Running ramalyze...\n'
     validation_class.run_ramalyze()
 
   if args.validation_type in ['omegalyze','all'] :
+    print >> log, 'Running omegalyze...\n'
     validation_class.run_omegalyze()
 
   if args.validation_type in ['cablam','all'] :
+    print >> log, 'Running cablam...\n'
     validation_class.run_cablam()
 
-  if args.validation_type in []:#'rscc','all'] :
+  if args.validation_type in ['rscc','all'] :
+    print >> log, 'Running real-space correlation...\n'
     validation_class.run_rscc()
 
 
