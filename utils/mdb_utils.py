@@ -18,8 +18,8 @@ reslist_na = [e for e in dna_rna_sequence_to_three.values() if e != None]
 # reslist_na list is ['ADE', 'CYT', 'GUA', 'URI', 'THY']
 
 # get bb and sc atoms
-bb_atoms = ["N", "CA", "C", "O"]
-sc_atoms = []
+bb_atoms = ["N", "CA", "C", "O", "CB"]
+sc_atoms = ["CB"]
 for oneaa,atomlist in protein_sequence_to_names.items() :
   if oneaa in ['B','Z'] : continue
   for an in atomlist :

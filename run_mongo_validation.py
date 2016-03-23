@@ -12,6 +12,7 @@ def get_args() :
   parser = argparse.ArgumentParser(description=desc)
   parser.add_argument('pdb_code', help='A pdb code')
   parser.add_argument('--pdb_cif', dest='cif_fn', help='A pdb mmcif')
+  parser.add_argument('--pdb_file', dest='pdb_fn', help='A pdb file')
   parser.add_argument('--hkl_mtz',dest='hklmtz_fn',help='An hkl mtz')
   parser.add_argument('-d','--detail', dest='detail', help='file or residue')
   parser.add_argument('--write_out_file',
@@ -35,7 +36,8 @@ def get_args() :
 def run (out=sys.stdout, quiet=False) :
   args = get_args()
 
-  if not args.cif_fn :
+  get_meta = True
+  if not args.cif_fn and not args.pdb_fn :
     assert len(args.pdb_code) == 4
     pdb_files = pdb_utils.get_pdb_files(args.pdb_code,pdbcif=True)
     pdbfn = pdb_files['pdbcif']
@@ -43,15 +45,25 @@ def run (out=sys.stdout, quiet=False) :
   elif args.cif_fn :
     pdbfn = args.cif_fn
     args.dont_cleanup = True
+  elif args.pdb_fn :
+    assert args.pdb_code
+    pdbfn = args.pdb_fn
+    args.dont_cleanup = True
+    get_meta = False
   else : RuntimeError("Must provide a pdb code at the least")
   setattr(args,'pdb_file_path',pdbfn)
 
   #get and print meta data
-  meta_data = pdb_utils.get_pdb_meta_data(args.pdb_file_path)
-  print >> log, '*'*79 + '\nSummary:'
-  mdb_utils.print_json_pretty(meta_data,log)
-  print >> log, '*'*79
-  is_xray = meta_data["Experimental Method"] == "X-RAY DIFFRACTION"
+  if get_meta :
+    meta_data = pdb_utils.get_pdb_meta_data(args.pdb_file_path)
+    print >> log, '*'*79 + '\nSummary:'
+    mdb_utils.print_json_pretty(meta_data,log)
+    print >> log, '*'*79
+  else : print >> log, '*'*79 + '\nNo Summary available.\n' + '*'*79
+  if get_meta : 
+    is_xray = meta_data["Experimental Method"] == "X-RAY DIFFRACTION"
+  elif args.hklmtz_fn :
+    is_xray = True
   if is_xray and args.validation_type in ['rscc','all'] :
     if not args.hklmtz_fn :
       pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
@@ -81,9 +93,13 @@ def run (out=sys.stdout, quiet=False) :
                                             hklmtz_file = args.hklmtz_file_path,
                                             detail      = args.detail,
                                             pdb_code    = args.pdb_code)
+  getRNA = False
   if args.validation_type in ['rna','all'] :
-    print >> log, 'Running rna validation...\n'
-    if meta_data['summary']['contains_rna'] :
+    if get_meta and meta_data['summary']['contains_rna'] : metaRNA = True
+    else : metaRNA = False
+    if args.validation_type == 'rna' or metaRNA : getRNA = True
+    if getRNA :
+      print >> log, 'Running rna validation...\n'
       validation_class.run_rna_validation()
 
   if args.validation_type in ['clashscore','all'] :

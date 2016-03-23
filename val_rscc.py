@@ -15,10 +15,9 @@ from utils import utils
 
 class RSCCvalidation(object) :
 
-  def __init__(self,pdb_file,hklmtz_file,pdb_code,meta_data) :
+  def __init__(self,pdb_file,hklmtz_file,pdb_code) :
     self.pdb_file    = pdb_file
     self.hklmtz_file = hklmtz_file
-    self.meta_data   = meta_data
     self.pdb_code    = pdb_code
     self.run_validation()
     assert os.path.exists(self.pdb_file)

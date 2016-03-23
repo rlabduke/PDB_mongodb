@@ -7,11 +7,11 @@ import utils.mdb_utils
 
 class CLASHSCOREvalidation(object) :
 
-  def __init__(self,pdb_file,detail,mdb_document,meta_data) :
+  def __init__(self,pdb_file,detail,mdb_document,pdb_id) :
     self.pdb_file    = pdb_file
     self.detail      = detail
     self.mdb_document= mdb_document
-    self.meta_data = meta_data
+    self.pdb_id      = pdb_id
     self.run_validation()
     if self.detail == 'file' : self.add_file()
     elif self.detail == 'residue' : self.add_residue()
@@ -41,14 +41,13 @@ class CLASHSCOREvalidation(object) :
     residues = [None,None]
     for clash in self.result.results :
       for i,atom in enumerate(clash.atoms_info) :
-        resd = {'pdb_id'     : self.meta_data['_id'],
+        resd = {'pdb_id'     : self.pdb_id,
                 'model_id'   : None,
                 'chain_id'   : atom.chain_id,
                 'icode'      : atom.icode,
                 'resseq'     : atom.resseq,
                 'altloc'     : atom.altloc,
-                'resname'    : atom.resname,
-                'resolution' : self.meta_data['Resolution']}
+                'resname'    : atom.resname}
         res = utils.mdb_utils.MDBResidue(**resd)
         residues[i] = res
 

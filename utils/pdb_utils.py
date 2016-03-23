@@ -33,6 +33,7 @@ class MDB_PDB_validation(object) :
   # pdb. Because we do this step, subsequent reidue-level criteria will already
   # have a MDBResidue to wich the criteria can be added to.
   def initiate_residues(self) :
+    print >> sys.stderr, 'initializing residues...\n'
     self.residues = {}
     for chain in self.hierarchy.chains():
       for residue_group in chain.residue_groups():
@@ -53,7 +54,10 @@ class MDB_PDB_validation(object) :
     if mdb_document is not None : self.mdb_document = mdb_document;return
     pdb_in = file_reader.any_file(self.pdb_file)
     pdb_in.check_file_type('pdb')
-    self.meta_data = get_pdb_meta_data(self.pdb_file)
+    try : self.meta_data = get_pdb_meta_data(self.pdb_file)
+    except : 
+     self.meta_data = None
+     return
     # if the detail of the output is 'file' then of course the meta data is
     # relevent to the output.
     if self.detail == 'file' : self.mdb_document = self.meta_data.copy()
@@ -74,11 +78,20 @@ class MDB_PDB_validation(object) :
                    sort_keys=True,indent=4,separators=sep)
       print >> log, s
 
+  def get_resd(self,result) :
+    return {'pdb_id'     : self.pdb_code,
+            'model_id'   : None,
+            'chain_id'   : result.chain_id,
+            'icode'      : result.icode,
+            'resseq'     : result.resseq_as_int(),
+            'altloc'     : result.altloc,
+            'resname'    : result.resname}
+
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
     try :
       vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document,
-             self.meta_data)
+             self.pdb_code)
     except : pass
     else :
       self.mdb_document = vc.mdb_document
@@ -88,13 +101,7 @@ class MDB_PDB_validation(object) :
           for i,atom in enumerate(clash.atoms_info) :
             #print atom.atom_group_id_str() + atom.name
             #print dir(atom);exit()
-            resd = {'pdb_id'     : self.meta_data['_id'],
-                    'model_id'   : None,
-                    'chain_id'   : atom.chain_id,
-                    'icode'      : atom.icode,
-                    'resseq'     : atom.resseq,
-                    'altloc'     : atom.altloc,
-                    'resname'    : atom.resname}
+            resd = self.get_resd(ratom)
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             clashatoms.append({'targ_reskey':reskey,
@@ -123,13 +130,7 @@ class MDB_PDB_validation(object) :
     from mmtbx.validation import rotalyze
     rotalyze_result = rotalyze.rotalyze(self.hierarchy)
     for result in rotalyze_result.results : 
-      resd = {'pdb_id'     : self.pdb_code,
-              'model_id'   : None,
-              'chain_id'   : result.chain_id,
-              'icode'      : result.icode,
-              'resseq'     : result.resseq_as_int(),
-              'altloc'     : result.altloc,
-              'resname'    : result.resname}
+      resd = self.get_resd(result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_rotalyze_result(result)
@@ -139,13 +140,7 @@ class MDB_PDB_validation(object) :
     ramalyze_result = ramalyze.ramalyze(self.hierarchy)
     for result in ramalyze_result.results : 
       #print dir(result);sys.exit()
-      resd = {'pdb_id'     : self.pdb_code,
-              'model_id'   : None,
-              'chain_id'   : result.chain_id,
-              'icode'      : result.icode,
-              'resseq'     : result.resseq_as_int(),
-              'altloc'     : result.altloc,
-              'resname'    : result.resname}
+      resd = self.get_resd(result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_ramalyze_result(result)
@@ -159,13 +154,7 @@ class MDB_PDB_validation(object) :
                                quiet         = False)
     for result in omegalyze_result.results : 
       #print dir(result);sys.exit()
-      resd = {'pdb_id'     : self.pdb_code,
-              'model_id'   : None,
-              'chain_id'   : result.chain_id,
-              'icode'      : result.icode,
-              'resseq'     : result.resseq_as_int(),
-              'altloc'     : result.altloc,
-              'resname'    : result.resname}
+      resd = self.get_resd(result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_omegalyze_result(result)
@@ -180,15 +169,7 @@ class MDB_PDB_validation(object) :
     t = True
     for result in cablam_result.results :
       #print dir(result);sys.exit()
-      resd = {'pdb_id'     : self.pdb_code,
-              'model_id'   : None,
-              #'chain_id'   : result.chain_id,
-              'chain_id'   : result.chain,
-              'icode'      : result.icode,
-              'resseq'     : result.resseq_as_int(),
-              #'altloc'     : result.altloc,
-              'altloc'     : result.alt,
-              'resname'    : result.residue.resname}
+      resd = self.get_resd(result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       if reskey in self.residues.keys() :
@@ -201,8 +182,7 @@ class MDB_PDB_validation(object) :
     import val_rscc
     rscob = val_rscc.RSCCvalidation(self.pdb_file,
                                     self.hklmtz_file,
-                                    self.pdb_code,
-                                    self.meta_data)
+                                    self.pdb_code)
     for reskey,atomlist in rscob.mdb_residues.items() :
       for atomd in atomlist :
         self.residues[reskey].deposit_atom(mdb_utils.MDBAtom(**atomd))
