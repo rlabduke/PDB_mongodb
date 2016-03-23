@@ -50,11 +50,12 @@ class MDBResidue(object) :
 
   __slots__ = ['pdb_id','model_id','chain_id','icode']
   __slots__+= ['resseq','altloc','resname','atoms','resolution']
-  __slots__+= ['rotalyze','ramalyze','omegalyze','cablam']
+  __slots__+= ['rotalyze','ramalyze','omegalyze','cablam','clashes']
 
   def __init__(self,**kwargs) :
     for key, value in kwargs.iteritems():
       setattr(self, key, value)
+      if hasattr(self,'pdb_id') : self.pdb_id = self.pdb_id.lower()
     self.atoms= []
 
   def deposit_atom(self,atom) :
@@ -169,6 +170,10 @@ class MDBResidue(object) :
          beta         = result.scores.beta,
          threeten     = result.scores.threeten)
 
+  def add_clash(self,resd) :
+    if not hasattr(self,'clashes') : self.clashes = []
+    self.clashes.append(resd)
+
   def is_protein(self) :
     # Bases soley on resname
     return self.resname.upper() in reslist
@@ -223,6 +228,8 @@ class MDBResidue(object) :
       d['omegalyze'] = self.get_module_dict('omegalyze')
     if hasattr(self,'cablam') :
       d['cablam'] = self.get_module_dict('cablam')
+    if hasattr(self,'clashes') :
+      d['clashes'] = self.clashes
     return d
 
   def get_residue_key(self) :

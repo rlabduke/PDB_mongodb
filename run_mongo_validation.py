@@ -45,15 +45,24 @@ def run (out=sys.stdout, quiet=False) :
     args.dont_cleanup = True
   else : RuntimeError("Must provide a pdb code at the least")
   setattr(args,'pdb_file_path',pdbfn)
-  if not args.hklmtz_fn :
-    pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
-    pdb_files['pdbcif'] = args.pdb_file_path
-    hklmtzfn = pdb_files['hklmtz']
-    print >> log, '%s downloaded' % hklmtzfn
-  elif args.hklmtz_fn :
-    hklmtzfn = args.hklmtz_fn
-    args.dont_cleanup = True
-  setattr(args,'hklmtz_file_path',hklmtzfn)
+
+  #get and print meta data
+  meta_data = pdb_utils.get_pdb_meta_data(args.pdb_file_path)
+  print >> log, '*'*79 + '\nSummary:'
+  mdb_utils.print_json_pretty(meta_data,log)
+  print >> log, '*'*79
+  is_xray = meta_data["Experimental Method"] == "X-RAY DIFFRACTION"
+  if is_xray and args.validation_type in ['rscc','all'] :
+    if not args.hklmtz_fn :
+      pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
+      pdb_files['pdbcif'] = args.pdb_file_path
+      hklmtzfn = pdb_files['hklmtz']
+      print >> log, '%s downloaded' % hklmtzfn
+    elif args.hklmtz_fn :
+      hklmtzfn = args.hklmtz_fn
+      args.dont_cleanup = True
+    setattr(args,'hklmtz_file_path',hklmtzfn)
+  else : setattr(args,'hklmtz_file_path',None)
 
   if not args.outdir : outdir = os.getcwd()
   else : outdir = args.outdir
@@ -67,14 +76,11 @@ def run (out=sys.stdout, quiet=False) :
   # If detail is residue then MDB_PDB_validation will have a residues object 
   # which is a dict with keys being a res id and values being MDBResidue
   # objects.
-  validation_class = pdb_utils.MDB_PDB_validation(pdb_file = args.pdb_file_path,
+  validation_class = pdb_utils.MDB_PDB_validation(
+                                            pdb_file    = args.pdb_file_path,
                                             hklmtz_file = args.hklmtz_file_path,
-                                                 detail   = args.detail,
-                                                 pdb_code = args.pdb_code)
-  meta_data = validation_class.meta_data
-  print >> log, '*'*79 + '\nSummary:'
-  mdb_utils.print_json_pretty(meta_data,log)
-  print >> log, '*'*79
+                                            detail      = args.detail,
+                                            pdb_code    = args.pdb_code)
   if args.validation_type in ['rna','all'] :
     print >> log, 'Running rna validation...\n'
     if meta_data['summary']['contains_rna'] :

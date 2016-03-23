@@ -76,9 +76,43 @@ class MDB_PDB_validation(object) :
 
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
-    vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document,
-           self.meta_data)
-    self.mdb_document = vc.mdb_document
+    try :
+      vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document,
+             self.meta_data)
+    except : pass
+    else :
+      self.mdb_document = vc.mdb_document
+      if self.detail == 'residue' :
+        for clash in vc.result.results :
+          clashatoms = []
+          for i,atom in enumerate(clash.atoms_info) :
+            #print atom.atom_group_id_str() + atom.name
+            #print dir(atom);exit()
+            resd = {'pdb_id'     : self.meta_data['_id'],
+                    'model_id'   : None,
+                    'chain_id'   : atom.chain_id,
+                    'icode'      : atom.icode,
+                    'resseq'     : atom.resseq,
+                    'altloc'     : atom.altloc,
+                    'resname'    : atom.resname}
+            MDBRes = mdb_utils.MDBResidue(**resd)
+            reskey = MDBRes.get_residue_key()
+            clashatoms.append({'targ_reskey':reskey,
+                               'targname':atom.name,
+                               'overlap':clash.overlap})
+          assert len(clashatoms) == 2
+          # targ and src can be confusing here. The following puts targ reskey
+          # targname in the coresponding src residue. Take the following clash :
+          #    A  72  ARG  HG2  A  72  ARG  O   :-1.038
+          # clashatoms[0] = {'targname': ' HG2', 'targ_reskey': '1ubqA72ARG'}
+          # clashatoms[1] = {'targname': ' O  ', 'targ_reskey': '1ubqA72ARG'}
+          # we then put the src name in next :
+          clashatoms[0]['srcname'] = clashatoms[1]['targname']
+          clashatoms[1]['srcname'] = clashatoms[0]['targname']
+          # next we add clashatoms[1] to the residue object corresponding to
+          # clashatoms[0] and vise versa.
+          self.residues[clashatoms[0]['targ_reskey']].add_clash(clashatoms[1])
+          self.residues[clashatoms[1]['targ_reskey']].add_clash(clashatoms[0])
 
   def run_rna_validation(self) :
     from val_rna import RNAvalidation
@@ -161,6 +195,9 @@ class MDB_PDB_validation(object) :
         self.residues[reskey].add_cablam_result(result)
 
   def run_rscc(self) :
+    if not self.hklmtz_file :
+      print >> sys.stderr, '*'*79 + '\nSkipping rscc - no hkl file found'
+      return
     import val_rscc
     rscob = val_rscc.RSCCvalidation(self.pdb_file,
                                     self.hklmtz_file,
