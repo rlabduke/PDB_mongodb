@@ -78,15 +78,6 @@ class MDB_PDB_validation(object) :
                    sort_keys=True,indent=4,separators=sep)
       print >> log, s
 
-  def get_resd(self,result) :
-    return {'pdb_id'     : self.pdb_code,
-            'model_id'   : None,
-            'chain_id'   : result.chain_id,
-            'icode'      : result.icode,
-            'resseq'     : int(result.resseq),
-            'altloc'     : result.altloc,
-            'resname'    : result.resname}
-
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
     try :
@@ -101,7 +92,7 @@ class MDB_PDB_validation(object) :
           for i,atom in enumerate(clash.atoms_info) :
             #print atom.atom_group_id_str() + atom.name
             #print dir(atom);exit()
-            resd = self.get_resd(atom)
+            resd = mdb_utils.get_resd(self.pdb_code,atom)
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             clashatoms.append({'targ_reskey':reskey,
@@ -130,7 +121,7 @@ class MDB_PDB_validation(object) :
     from mmtbx.validation import rotalyze
     rotalyze_result = rotalyze.rotalyze(self.hierarchy)
     for result in rotalyze_result.results : 
-      resd = self.get_resd(result)
+      resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_rotalyze_result(result)
@@ -140,7 +131,7 @@ class MDB_PDB_validation(object) :
     ramalyze_result = ramalyze.ramalyze(self.hierarchy)
     for result in ramalyze_result.results : 
       #print dir(result);sys.exit()
-      resd = self.get_resd(result)
+      resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_ramalyze_result(result)
@@ -154,7 +145,7 @@ class MDB_PDB_validation(object) :
                                quiet         = False)
     for result in omegalyze_result.results : 
       #print dir(result);sys.exit()
-      resd = self.get_resd(result)
+      resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       self.residues[reskey].add_omegalyze_result(result)
@@ -169,7 +160,7 @@ class MDB_PDB_validation(object) :
     t = True
     for result in cablam_result.results :
       #print dir(result);sys.exit()
-      resd = self.get_resd(result)
+      resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       if reskey in self.residues.keys() :

@@ -28,6 +28,15 @@ for oneaa,atomlist in protein_sequence_to_names.items() :
 def print_json_pretty(d,log=sys.stdout) :
   print >> log, json.dumps(d,indent=4, separators=(',', ': '))
 
+def get_resd(pdb_code,result) :
+  return {'pdb_id'     : pdb_code,
+          'model_id'   : None,
+          'chain_id'   : result.chain_id,
+          'icode'      : result.icode,
+          'resseq'     : int(result.resseq),
+          'altloc'     : result.altloc,
+          'resname'    : result.resname}
+
 class MDBAtom(object) :
 
   __slots__ = ['name','xyz','adp','rscc','twoFo_DFc_value']
@@ -158,8 +167,23 @@ class MDBResidue(object) :
         type          = result.omegalyze_type())
 
   def add_cablam_result(self,result) :
+    if result.nextres :
+      resd = get_resd(self.pdb_id,result.nextres)
+      MDBRes = MDBResidue(**resd)
+      nextkey = MDBRes.get_residue_key()
+    else : nextkey = None
+    if result.prevres :
+      resd = get_resd(self.pdb_id,result.prevres)
+      MDBRes = MDBResidue(**resd)
+      prevkey = MDBRes.get_residue_key()
+    else : prevkey = None
+    #print result.nextres.id_str()
+    #print result.prevres.id_str()
+    #print dir(result.nextres)
     #print dir(result);exit()
     self.cablam = group_args(
+         next         = nextkey,
+         prev         = prevkey,
          mu_in        = result.measures.mu_in,
          mu_out       = result.measures.mu_out,
          nu           = result.measures.nu,
