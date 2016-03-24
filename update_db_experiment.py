@@ -83,9 +83,8 @@ def run(args) :
 
 
   # iterate trough the missing pdbs
-  if len(missing) > 2000 : factor = 1000
+  if len(missing) > 3000 : factor = 1000
   else : factor = 100
-  factor = 100
   print >> sys.stderr, '\n\nBegin iterating missing pdbs...\n'
   msg = '\n%i records inserted - %.2f %% done.\n'
   for i,pdb_id in enumerate(missing) :

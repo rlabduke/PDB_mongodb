@@ -4,5 +4,6 @@
 *.pyc
 sand/
 allpdbs.l
+allpdbs.notes
 mongodb_pdb_connect.py
 /__init__.py
