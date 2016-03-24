@@ -83,7 +83,7 @@ class MDB_PDB_validation(object) :
             'model_id'   : None,
             'chain_id'   : result.chain_id,
             'icode'      : result.icode,
-            'resseq'     : result.resseq_as_int(),
+            'resseq'     : int(result.resseq),
             'altloc'     : result.altloc,
             'resname'    : result.resname}
 
@@ -101,7 +101,7 @@ class MDB_PDB_validation(object) :
           for i,atom in enumerate(clash.atoms_info) :
             #print atom.atom_group_id_str() + atom.name
             #print dir(atom);exit()
-            resd = self.get_resd(ratom)
+            resd = self.get_resd(atom)
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             clashatoms.append({'targ_reskey':reskey,
