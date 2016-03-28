@@ -8,6 +8,13 @@ import utils
 from cStringIO import StringIO
 import iotbx.pdb
 from iotbx.file_reader import any_file
+from iotbx import mtz
+
+def get_data_labels(mtz_file) :
+  mtz_object = mtz.object(file_name=mtz_file)
+  labels = mtz_object.column_labels()
+  if 'FOBS' in labels and 'SIGFOBS' in labels : return 'FOBS,SIGFOBS'
+  elif 'FOBS' in labels : return 'FOBS'
 
 def set_radius(d_min):
   if(d_min < 1.0):                    atom_radius = 1.0
@@ -16,13 +23,26 @@ def set_radius(d_min):
   else:                               atom_radius = 2.5
   return atom_radius
 
-def get_rscc_diff(pdb_file,reflection_file,log=None) :
+def get_rscc_diff(pdb_file,reflection_file,high_resolution,log=None) :
+  if not log : log = sys.stderr
+  print >> log, '*' * 20 + '  rscc  ' + '*' * 20
+  print >> log, 'pdb file : %s' % pdb_file
+  print >> log, 'hkl mtz : %s' % reflection_file
+  print >> log, 'high_resolution : %.2f' % high_resolution
   pdb_in = any_file(pdb_file)
   hierarchy = pdb_in.file_object.hierarchy
   inputs = mmtbx.utils.process_command_line_args([pdb_file,reflection_file])
+
+  # try to get data labels
+  data_labels = get_data_labels(reflection_file)
+  parameters = mmtbx.utils.data_and_flags_master_params().extract()
+  parameters.force_anomalous_flag_to_be_equal_to = False
+  if data_labels : parameters.labels = [data_labels]
+  if high_resolution : parameters.high_resolution = high_resolution
   data_and_flags = mmtbx.utils.determine_data_and_flags(
     reflection_file_server = inputs.get_reflection_file_server(),
     keep_going             = True, # don't stop if free flags are not present
+    parameters             = parameters,
     log                    = StringIO())
   f_obs = data_and_flags.f_obs
   r_free_flags = data_and_flags.f_obs.array(

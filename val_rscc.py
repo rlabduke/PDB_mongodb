@@ -15,10 +15,11 @@ from utils import utils
 
 class RSCCvalidation(object) :
 
-  def __init__(self,pdb_file,hklmtz_file,pdb_code) :
+  def __init__(self,pdb_file,hklmtz_file,pdb_code,high_resolution) :
     self.pdb_file    = pdb_file
     self.hklmtz_file = hklmtz_file
     self.pdb_code    = pdb_code
+    self.high_resolution = high_resolution
     self.run_validation()
     assert os.path.exists(self.pdb_file)
     assert os.path.exists(self.hklmtz_file)
@@ -26,7 +27,8 @@ class RSCCvalidation(object) :
   def run_validation(self) :
     rsc = rscc_utils.get_rscc_diff(
       pdb_file=self.pdb_file,
-      reflection_file=self.hklmtz_file)
+      reflection_file=self.hklmtz_file,
+      high_resolution=self.high_resolution)
 
     # self.mdb_residues have MDBRes.get_residue_key() keys and values are lists
     # of MDBAtom[s].

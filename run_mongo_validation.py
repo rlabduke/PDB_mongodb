@@ -54,11 +54,14 @@ def run (out=sys.stdout, quiet=False) :
   setattr(args,'pdb_file_path',pdbfn)
 
   #get and print meta data
+  high_resolution = None
   if get_meta :
     meta_data = pdb_utils.get_pdb_meta_data(args.pdb_file_path)
     print >> log, '*'*79 + '\nSummary:'
     mdb_utils.print_json_pretty(meta_data,log)
     print >> log, '*'*79
+    if "Resolution" in meta_data.keys() :
+      high_resolution = meta_data["Resolution"]
   else : print >> log, '*'*79 + '\nNo Summary available.\n' + '*'*79
   if get_meta : 
     is_xray = meta_data["Experimental Method"] == "X-RAY DIFFRACTION"
@@ -92,7 +95,8 @@ def run (out=sys.stdout, quiet=False) :
                                             pdb_file    = args.pdb_file_path,
                                             hklmtz_file = args.hklmtz_file_path,
                                             detail      = args.detail,
-                                            pdb_code    = args.pdb_code)
+                                            pdb_code    = args.pdb_code,
+                                            high_resolution = high_resolution)
   getRNA = False
   if args.validation_type in ['rna','all'] :
     if get_meta and meta_data['summary']['contains_rna'] : metaRNA = True

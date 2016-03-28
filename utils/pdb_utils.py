@@ -14,13 +14,15 @@ class MDB_PDB_validation(object) :
   __slots__ = ['pdb_file','hklmtz_file', 'set_mdb_document','run_validation']
   __slots__+= ['add_file','add_residue','mdb_document','result','mdb_document']
   __slots__+= ['residues','meta_data','detail','hierarchy','pdb_code']
+  __slots__+= ['high_resolution']
   def __init__(self,pdb_file,hklmtz_file,
-               detail,mdb_document=None,pdb_code=None) :
+               detail,high_resolution=None,mdb_document=None,pdb_code=None) :
     assert detail in ['file','residue'],detail
     self.pdb_file = pdb_file
     self.hklmtz_file = hklmtz_file
     self.detail = detail
     self.pdb_code = pdb_code
+    self.high_resolution = high_resolution
     if not pdb_code : self.pdb_code = 'N/A'
     pdb_in = file_reader.any_file(pdb_file)
     self.hierarchy = pdb_in.file_object.hierarchy
@@ -171,9 +173,10 @@ class MDB_PDB_validation(object) :
       print >> sys.stderr, '*'*79 + '\nSkipping rscc - no hkl file found'
       return
     import val_rscc
-    rscob = val_rscc.RSCCvalidation(self.pdb_file,
-                                    self.hklmtz_file,
-                                    self.pdb_code)
+    rscob = val_rscc.RSCCvalidation(pdb_file        = self.pdb_file,
+                                    hklmtz_file     = self.hklmtz_file,
+                                    pdb_code        = self.pdb_code,
+                                    high_resolution = self.high_resolution)
     for reskey,atomlist in rscob.mdb_residues.items() :
       for atomd in atomlist :
         self.residues[reskey].deposit_atom(mdb_utils.MDBAtom(**atomd))
@@ -331,7 +334,7 @@ def get_pdb_meta_data(pdbcif_fn,pdb_code=None) :
   # get summary
   pdb_meta_data['Experimental Method'] = cif[pdb_code]["_exptl.method"]
   if "_refine.ls_d_res_high" in cif[pdb_code].keys() :
-    pdb_meta_data['Resolution'] = cif[pdb_code]["_refine.ls_d_res_high"]
+    pdb_meta_data['Resolution'] = float(cif[pdb_code]["_refine.ls_d_res_high"])
   # get dates
   deposit_date,release_date = get_deposit_date(cif[pdb_code])
   pdb_meta_data['Deposition Date'] = deposit_date
