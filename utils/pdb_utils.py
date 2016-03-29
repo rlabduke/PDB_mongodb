@@ -175,7 +175,12 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
-      self.residues[reskey].add_rotalyze_result(result)
+      if reskey not in self.residues.keys(): # alternates likely exist
+        reskeys = self.get_alternate_keys(resd)
+        for k in reskeys :
+          self.residues[k].add_rotalyze_result(result)
+      else : # No alternates
+        self.residues[reskey].add_rotalyze_result(result)
 
   def run_ramalyze(self) :
     from mmtbx.validation import ramalyze
