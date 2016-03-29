@@ -5,6 +5,7 @@ import iotbx.pdb
 import datetime
 import json
 import mdb_utils
+import re
 
 validation_types = ['all','rna','clashscore','rotalyze','ramalyze']
 validation_types+= ['omegalyze','cablam','rscc']
@@ -51,6 +52,9 @@ class MDB_PDB_validation(object) :
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             self.residues[reskey] = MDBRes
+    #for k in self.residues.keys() :
+    #  if k.find('A79') != -1 : print k
+    #exit()
 
   def set_mdb_document(self,mdb_document) :
     if mdb_document is not None : self.mdb_document = mdb_document;return
@@ -80,6 +84,17 @@ class MDB_PDB_validation(object) :
                    sort_keys=True,indent=4,separators=sep)
       print >> log, s
 
+  def get_alternate_keys(self,resd) :
+    reskey = []
+    rk = resd['pdb_id'] + resd['chain_id'] + resd['icode']
+    rk+= str(resd['resseq']) + resd['altloc'] + '[a-zA-z]'
+    rk+= resd['resname']
+    rk = rk.replace(' ','')
+    mo = re.compile(rk)
+    for k in self.residues.keys() :
+      if mo.match(k) : reskey.append(k)
+    return reskey
+
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
     try :
@@ -97,6 +112,18 @@ class MDB_PDB_validation(object) :
             resd = mdb_utils.get_resd(self.pdb_code,atom)
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
+            # When dealing with alts in only a portion of the residue, reskey 
+            # (as just defined) will not be found in self.residues.keys().
+            # The reason is that initiate_residues takes a residue with n alts
+            # and splits into n separate residues. e.g. if a residue has alt
+            # A and B in one residue atom for just sidchain atoms, there will
+            # exist two residues, A and B, both having the atoms that don't have
+            # alts and each having their respective alt atoms. When this is the
+            # case we remedy by putting the clash in both A and B. This is what
+            # the folllowing code is doing.
+            if reskey not in self.residues.keys():
+              reskeys = self.get_alternate_keys(resd)
+              reskey = [k for k in reskeys]
             clashatoms.append({'targ_reskey':reskey,
                                'targname':atom.name,
                                'overlap':clash.overlap})
@@ -111,8 +138,30 @@ class MDB_PDB_validation(object) :
           clashatoms[1]['srcname'] = clashatoms[0]['targname']
           # next we add clashatoms[1] to the residue object corresponding to
           # clashatoms[0] and vise versa.
-          self.residues[clashatoms[0]['targ_reskey']].add_clash(clashatoms[1])
-          self.residues[clashatoms[1]['targ_reskey']].add_clash(clashatoms[0])
+          if type(clashatoms[0]['targ_reskey']) == list :
+            for tk in clashatoms[0]['targ_reskey'] :
+              if type(clashatoms[1]['targ_reskey']) == list :
+                for sk in clashatoms[1]['targ_reskey'] :
+                  newdict = {'targ_reskey':sk,
+                             'targname':clashatoms[1]['targname'],
+                             'overlap':clashatoms[1]['overlap']}
+                  self.residues[tk].add_clash(newdict)
+              else :
+                self.residues[tk].add_clash(clashatoms[1])
+          else:
+            self.residues[clashatoms[0]['targ_reskey']].add_clash(clashatoms[1])
+          if type(clashatoms[1]['targ_reskey']) == list :
+            for tk in clashatoms[1]['targ_reskey'] :
+              if type(clashatoms[0]['targ_reskey']) == list :
+                for sk in clashatoms[0]['targ_reskey'] :
+                  newdict = {'targ_reskey':sk,
+                             'targname':clashatoms[0]['targname'],
+                             'overlap':clashatoms[0]['overlap']}
+                  self.residues[tk].add_clash(newdict)
+              else :
+                self.residues[tk].add_clash(clashatoms[0])
+          else:
+            self.residues[clashatoms[1]['targ_reskey']].add_clash(clashatoms[0])
 
   def run_rna_validation(self) :
     from val_rna import RNAvalidation
@@ -136,7 +185,12 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
-      self.residues[reskey].add_ramalyze_result(result)
+      if reskey not in self.residues.keys(): # alternates likely exist
+        reskeys = self.get_alternate_keys(resd)
+        for k in reskeys :
+          self.residues[k].add_ramalyze_result(result)
+      else : # No alternates
+        self.residues[reskey].add_ramalyze_result(result)
 
   def run_omegalyze(self) :
     from mmtbx.validation import omegalyze
@@ -150,7 +204,12 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
-      self.residues[reskey].add_omegalyze_result(result)
+      if reskey not in self.residues.keys(): # alternates likely exist
+        reskeys = self.get_alternate_keys(resd)
+        for k in reskeys :
+          self.residues[k].add_omegalyze_result(result)
+      else : # No alternates
+        self.residues[reskey].add_omegalyze_result(result)
 
   def run_cablam(self) :
     from mmtbx.validation import cablam
