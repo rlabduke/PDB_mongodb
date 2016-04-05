@@ -52,7 +52,10 @@ class MDB_PDB_validation(object) :
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             self.residues[reskey] = MDBRes
-    #for k in self.residues.keys() :
+    #reskeys = self.residues.keys()
+    #reskeys.sort()
+    #for k in reskeys :
+    #  print k
     #  if k.find('A79') != -1 : print k
     #exit()
 
