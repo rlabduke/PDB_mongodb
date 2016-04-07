@@ -25,6 +25,8 @@ def get_args() :
   hs = 'don\'t cleanup downloaded files'
   parser.add_argument('--dont-cleanup', dest='dont_cleanup', help=hs,
                       action='store_const', const=True)
+  parser.add_argument('--do_flips', help='do flips when calculating clashes',
+                      action='store_const', const=True)
   args = parser.parse_args()
 
 
@@ -91,12 +93,14 @@ def run (out=sys.stdout, quiet=False) :
   # If detail is residue then MDB_PDB_validation will have a residues object 
   # which is a dict with keys being a res id and values being MDBResidue
   # objects.
+  if args.do_flips is None : args.do_flips = False
   validation_class = pdb_utils.MDB_PDB_validation(
                                             pdb_file    = args.pdb_file_path,
                                             hklmtz_file = args.hklmtz_file_path,
                                             detail      = args.detail,
                                             pdb_code    = args.pdb_code,
-                                            high_resolution = high_resolution)
+                                            high_resolution = high_resolution,
+                                            do_flips        = args.do_flips)
   getRNA = False
   if args.validation_type in ['rna','all'] :
     if get_meta and meta_data['summary']['contains_rna'] : metaRNA = True

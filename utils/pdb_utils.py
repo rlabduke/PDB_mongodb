@@ -15,15 +15,18 @@ class MDB_PDB_validation(object) :
   __slots__ = ['pdb_file','hklmtz_file', 'set_mdb_document','run_validation']
   __slots__+= ['add_file','add_residue','mdb_document','result','mdb_document']
   __slots__+= ['residues','meta_data','detail','hierarchy','pdb_code']
-  __slots__+= ['high_resolution']
+  __slots__+= ['do_flips','high_resolution']
   def __init__(self,pdb_file,hklmtz_file,
-               detail,high_resolution=None,mdb_document=None,pdb_code=None) :
+               detail,high_resolution=None,mdb_document=None,pdb_code=None,
+               do_flips=False) :
     assert detail in ['file','residue'],detail
+    assert type(do_flips) == bool
     self.pdb_file = pdb_file
     self.hklmtz_file = hklmtz_file
     self.detail = detail
     self.pdb_code = pdb_code
     self.high_resolution = high_resolution
+    self.do_flips = do_flips
     if not pdb_code : self.pdb_code = 'N/A'
     pdb_in = file_reader.any_file(pdb_file)
     self.hierarchy = pdb_in.file_object.hierarchy
@@ -102,7 +105,7 @@ class MDB_PDB_validation(object) :
     from val_clashscore import CLASHSCOREvalidation
     try :
       vc = CLASHSCOREvalidation(self.pdb_file,self.detail,self.mdb_document,
-             self.pdb_code)
+             self.pdb_code,self.do_flips)
     except : pass
     else :
       self.mdb_document = vc.mdb_document

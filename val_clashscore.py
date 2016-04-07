@@ -7,11 +7,12 @@ import utils.mdb_utils
 
 class CLASHSCOREvalidation(object) :
 
-  def __init__(self,pdb_file,detail,mdb_document,pdb_id) :
+  def __init__(self,pdb_file,detail,mdb_document,pdb_id,do_flips) :
     self.pdb_file    = pdb_file
     self.detail      = detail
     self.mdb_document= mdb_document
     self.pdb_id      = pdb_id
+    self.do_flips    = do_flips
     self.run_validation()
     if self.detail == 'file' : self.add_file()
     elif self.detail == 'residue' : self.add_residue()
@@ -32,7 +33,8 @@ class CLASHSCOREvalidation(object) :
       keep_hydrogens=keep_hydrogens,
       nuclear=nuclear,
       out=out,
-      verbose=verbose and not quiet)
+      verbose=verbose and not quiet,
+      do_flips=self.do_flips)
  
   def add_file(self) :
     self.mdb_document['clashscore'] = self.result.get_clashscore()
