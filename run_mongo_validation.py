@@ -18,7 +18,7 @@ def get_args() :
   parser.add_argument('--write_out_file',
     dest='write_out_file', help='write file', action='store_const', const=True)
   vth = 'validation_type can be one of the following:\n%s  ' 
-  parser.add_argument("--validation_type", dest='validation_type',
+  parser.add_argument("--validation_type", nargs='+',
     help=vth % ', '.join(pdb_utils.validation_types))
   hs = 'A directory where the output document will be written'
   parser.add_argument('--outdir', dest='outdir', help=hs)
@@ -28,7 +28,6 @@ def get_args() :
   parser.add_argument('--do_flips', help='do flips when calculating clashes',
                       action='store_const', const=True)
   args = parser.parse_args()
-
 
   if not args.validation_type : args.validation_type = 'all'
   if not args.detail : args.detail = 'file'
@@ -69,7 +68,8 @@ def run (out=sys.stdout, quiet=False) :
     is_xray = meta_data["Experimental Method"] == "X-RAY DIFFRACTION"
   elif args.hklmtz_fn :
     is_xray = True
-  if is_xray and args.validation_type in ['rscc','all'] :
+  allrscc = 'all' in args.validation_type or 'rscc' in args.validation_type
+  if is_xray and allrscc :
     if not args.hklmtz_fn :
       pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
       pdb_files['pdbcif'] = args.pdb_file_path
@@ -102,38 +102,38 @@ def run (out=sys.stdout, quiet=False) :
                                             high_resolution = high_resolution,
                                             do_flips        = args.do_flips)
   getRNA = False
-  if args.validation_type in ['rna','all'] :
-    if get_meta and meta_data['summary']['contains_rna'] : metaRNA = True
-    else : metaRNA = False
-    if args.validation_type == 'rna' or metaRNA : getRNA = True
-    if getRNA :
-      print >> log, 'Running rna validation...\n'
-      validation_class.run_rna_validation()
+  for validation_type in args.validation_type :
+    if validation_type in ['rna','all'] :
+      if get_meta and meta_data['summary']['contains_rna'] : metaRNA = True
+      else : metaRNA = False
+      if validation_type == 'rna' or metaRNA : getRNA = True
+      if getRNA :
+        print >> log, 'Running rna validation...\n'
+        validation_class.run_rna_validation()
 
-  if args.validation_type in ['clashscore','all'] :
-    print >> log, 'Running clashscore...\n'
-    validation_class.run_clashscore_validation()
+    if validation_type in ['clashscore','all'] :
+      print >> log, 'Running clashscore...\n'
+      validation_class.run_clashscore_validation()
 
-  if args.validation_type in ['rotalyze','all'] :
-    print >> log, 'Running rotalyze...\n'
-    validation_class.run_rotalyze()
+    if validation_type in ['rotalyze','all'] :
+      print >> log, 'Running rotalyze...\n'
+      validation_class.run_rotalyze()
 
-  if args.validation_type in ['ramalyze','all'] :
-    print >> log, 'Running ramalyze...\n'
-    validation_class.run_ramalyze()
+    if validation_type in ['ramalyze','all'] :
+      print >> log, 'Running ramalyze...\n'
+      validation_class.run_ramalyze()
 
-  if args.validation_type in ['omegalyze','all'] :
-    print >> log, 'Running omegalyze...\n'
-    validation_class.run_omegalyze()
+    if validation_type in ['omegalyze','all'] :
+      print >> log, 'Running omegalyze...\n'
+      validation_class.run_omegalyze()
 
-  if args.validation_type in ['cablam','all'] :
-    print >> log, 'Running cablam...\n'
-    validation_class.run_cablam()
+    if validation_type in ['cablam','all'] :
+      print >> log, 'Running cablam...\n'
+      validation_class.run_cablam()
 
-  if args.validation_type in ['rscc','all'] :
-    print >> log, 'Running real-space correlation...\n'
-    validation_class.run_rscc()
-
+    if validation_type in ['rscc','all'] :
+      print >> log, 'Running real-space correlation...\n'
+      validation_class.run_rscc()
 
   if args.write_out_file :
     if args.outdir :
