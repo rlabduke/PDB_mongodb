@@ -102,6 +102,8 @@ def run (out=sys.stdout, quiet=False) :
                                             high_resolution = high_resolution,
                                             do_flips        = args.do_flips)
   getRNA = False
+  if type(args.validation_type) == str :
+    args.validation_type = [args.validation_type] 
   for validation_type in args.validation_type :
     if validation_type in ['rna','all'] :
       if get_meta and meta_data['summary']['contains_rna'] : metaRNA = True
