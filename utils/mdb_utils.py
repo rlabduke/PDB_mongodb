@@ -166,7 +166,10 @@ class MDBResidue(object) :
         omega         = result.omega,
         type          = result.omegalyze_type())
 
-  def add_cablam_result(self,result) :
+  def add_cablam_result(self,result,cablam_altloc=None) :
+    if not cablam_altloc and result.altloc.strip() != "" :
+      cablam_altloc = result.altloc.strip()
+    if not hasattr(self,'cablam') : self.cablam = []
     if result.nextres :
       resd = get_resd(self.pdb_id,result.nextres)
       MDBRes = MDBResidue(**resd)
@@ -181,25 +184,26 @@ class MDBResidue(object) :
     #print result.prevres.id_str()
     #print dir(result.nextres)
     #print dir(result);exit()
-    self.cablam = group_args(
-         next                 = nextkey,
-         prev                 = prevkey,
-         mu_in                = result.measures.mu_in,
-         mu_out               = result.measures.mu_out,
-         nu                   = result.measures.nu,
-         ca_virtual           = result.measures.ca_virtual,
-         cablam               = result.scores.cablam,
-         c_alpha_geom         = result.scores.c_alpha_geom,
-         alpha_score          = result.scores.alpha,
-         beta_score           = result.scores.beta,
-         threeten_score       = result.scores.threeten,
-         alpha_feedback       = result.feedback.alpha,
-         beta_feedback        = result.feedback.beta,
-         threeten_feedback    = result.feedback.threeten,
-         structure_suggestion = result.find_single_structure_suggestion(),
-         cablam_outlier       = result.feedback.cablam_outlier,
-         cablam_disfavored    = result.feedback.cablam_disfavored,
-         c_alpha_geom_outlier = result.feedback.c_alpha_geom_outlier)
+    self.cablam.append({
+         "next"                : nextkey,
+         "prev"                : prevkey,
+         "mu_in"               : result.measures.mu_in,
+         "mu_out"              : result.measures.mu_out,
+         "nu"                  : result.measures.nu,
+         "ca_virtual"          : result.measures.ca_virtual,
+         "cablam"              : result.scores.cablam,
+         "c_alpha_geom"        : result.scores.c_alpha_geom,
+         "alpha_score"         : result.scores.alpha,
+         "beta_score"          : result.scores.beta,
+         "threeten_score"      : result.scores.threeten,
+         "alpha_feedback"      : result.feedback.alpha,
+         "beta_feedback"       : result.feedback.beta,
+         "threeten_feedback"   : result.feedback.threeten,
+         "structure_suggestion": result.find_single_structure_suggestion(),
+         "cablam_outlier"      : result.feedback.cablam_outlier,
+         "cablam_disfavored"   : result.feedback.cablam_disfavored,
+         "c_alpha_geom_outlier": result.feedback.c_alpha_geom_outlier,
+         "cablam_altloc"       : cablam_altloc})
 
   def add_clash(self,resd) :
     if not hasattr(self,'clashes') : self.clashes = []
@@ -258,7 +262,7 @@ class MDBResidue(object) :
     if hasattr(self,'omegalyze') :
       d['omegalyze'] = self.get_module_dict('omegalyze')
     if hasattr(self,'cablam') :
-      d['cablam'] = self.get_module_dict('cablam')
+      d['cablam'] = self.cablam
     if hasattr(self,'clashes') :
       d['clashes'] = self.clashes
     return d

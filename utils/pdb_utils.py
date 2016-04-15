@@ -196,6 +196,7 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
+      #print reskey,reskey in self.residues.keys()
       if reskey not in self.residues.keys(): # alternates likely exist
         reskeys = self.get_alternate_keys(resd)
         for k in reskeys :
@@ -215,6 +216,7 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
+      #print reskey,reskey in self.residues.keys()
       if reskey not in self.residues.keys(): # alternates likely exist
         reskeys = self.get_alternate_keys(resd)
         for k in reskeys :
@@ -235,8 +237,20 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
+      #print reskey,reskey in self.residues.keys()
       if reskey in self.residues.keys() :
         self.residues[reskey].add_cablam_result(result)
+      else : #alts exist in reskey but the actual residue has no alt
+        assert reskey[-4].isalpha() and reskey[-5].isdigit()
+        newkey = reskey[:-4] + reskey[-3:]
+        if newkey not in self.residues.keys() :
+          print >> sys.stderr, 'WARNING : trouble finding %s' % reskey
+        else :
+          #print '  ' + newkey,newkey in self.residues.keys()
+          cal = result.altloc
+          result.altloc = ' '
+          self.residues[newkey].add_cablam_result(result,cablam_altloc=cal)
+        
 
   def run_rscc(self) :
     if not self.hklmtz_file :
