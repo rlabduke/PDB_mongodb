@@ -241,8 +241,8 @@ class MDB_PDB_validation(object) :
       if reskey in self.residues.keys() :
         self.residues[reskey].add_cablam_result(result)
       else : #alts exist in reskey but the actual residue has no alt
-        assert reskey[-4].isalpha() and reskey[-5].isdigit()
-        newkey = reskey[:-4] + reskey[-3:]
+        assert MDBRes.altloc != ''
+        newkey = MDBRes.get_residue_key(no_alt=True)
         if newkey not in self.residues.keys() :
           print >> sys.stderr, 'WARNING : trouble finding %s' % reskey
         else :

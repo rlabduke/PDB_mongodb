@@ -267,16 +267,17 @@ class MDBResidue(object) :
       d['clashes'] = self.clashes
     return d
 
-  def get_residue_key(self) :
+  def get_residue_key(self,no_alt=False) :
     # this is suppose to be unique r each residue and
     # will be used as the _id in mongo
-   key = ''
+   key = []
    l = ['pdb_id','model_id','chain_id','icode']
    l+= ['resseq','altloc','resname','atoms','resolution']
    for attr in l :
      if attr in ['atoms','resolution'] : continue
      s = getattr(self,attr)
-     if s is None : continue 
-     if type(s) == str :   key += s.strip()
-     elif type(s) == int : key += '%i' % s
-   return key
+     if s is None        : key.append('')
+     elif type(s) == str : key.append(s.strip())
+     elif type(s) == int : key.append('%i' % s)
+   if no_alt : key[l.index('altloc')] = ''
+   return ':'.join(key)
