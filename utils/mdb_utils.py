@@ -267,17 +267,20 @@ class MDBResidue(object) :
       d['clashes'] = self.clashes
     return d
 
-  def get_residue_key(self,no_alt=False) :
+  def get_residue_key(self,no_alt=False,assign_alt=False) :
     # this is suppose to be unique r each residue and
     # will be used as the _id in mongo
-   key = []
-   l = ['pdb_id','model_id','chain_id','icode']
-   l+= ['resseq','altloc','resname','atoms','resolution']
-   for attr in l :
-     if attr in ['atoms','resolution'] : continue
-     s = getattr(self,attr)
-     if s is None        : key.append('')
-     elif type(s) == str : key.append(s.strip())
-     elif type(s) == int : key.append('%i' % s)
-   if no_alt : key[l.index('altloc')] = ''
-   return ':'.join(key)
+    if assign_alt :
+      assert type(assign_alt) == str and len(assign_alt) == 1
+    key = []
+    l = ['pdb_id','model_id','chain_id','icode']
+    l+= ['resseq','altloc','resname','atoms','resolution']
+    for attr in l :
+      if attr in ['atoms','resolution'] : continue
+      s = getattr(self,attr)
+      if s is None        : key.append('')
+      elif type(s) == str : key.append(s.strip())
+      elif type(s) == int : key.append('%i' % s)
+    if no_alt : key[l.index('altloc')] = ''
+    elif assign_alt : key[l.index('altloc')] = assign_alt
+    return ':'.join(key)

@@ -55,6 +55,7 @@ class MDB_PDB_validation(object) :
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             self.residues[reskey] = MDBRes
+            #if residue.resseq_as_int() == 604 : print reskey
     #reskeys = self.residues.keys()
     #reskeys.sort()
     #for k in reskeys :
@@ -237,11 +238,13 @@ class MDB_PDB_validation(object) :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
+      if not result.prevres : continue
       #print reskey,reskey in self.residues.keys()
       if reskey in self.residues.keys() :
         self.residues[reskey].add_cablam_result(result)
-      else : #alts exist in reskey but the actual residue has no alt
-        assert MDBRes.altloc != ''
+      elif MDBRes.altloc != '' :
+        # alts exist in reskey but the actual residue has no alt
+        #assert MDBRes.altloc != '','"%s"' % MDBRes.altloc
         newkey = MDBRes.get_residue_key(no_alt=True)
         if newkey not in self.residues.keys() :
           print >> sys.stderr, 'WARNING : trouble finding %s' % reskey
@@ -250,7 +253,16 @@ class MDB_PDB_validation(object) :
           cal = result.altloc
           result.altloc = ' '
           self.residues[newkey].add_cablam_result(result,cablam_altloc=cal)
-        
+      else : # Side chain has alternates but bb does not.
+        for l in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' :
+          newkey = MDBRes.get_residue_key(assign_alt=l)
+          if newkey in self.residues.keys() :
+            result.altloc = l
+            self.residues[newkey].add_cablam_result(result)
+          newkey = MDBRes.get_residue_key(assign_alt=l.lower())
+          if newkey in self.residues.keys() :
+            result.altloc = l.lower()
+            result.altloc = self.residues[newkey].add_cablam_result(result)
 
   def run_rscc(self) :
     if not self.hklmtz_file :
