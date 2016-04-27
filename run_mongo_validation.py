@@ -38,6 +38,7 @@ def run (out=sys.stdout, quiet=False) :
   args = get_args()
 
   get_meta = True
+  pdb_files = {}
   if not args.cif_fn and not args.pdb_fn :
     assert len(args.pdb_code) == 4
     pdb_files = pdb_utils.get_pdb_files(args.pdb_code,pdbcif=True)
@@ -71,8 +72,10 @@ def run (out=sys.stdout, quiet=False) :
   allrscc = 'all' in args.validation_type or 'rscc' in args.validation_type
   if is_xray and allrscc :
     if not args.hklmtz_fn :
-      pdb_files = pdb_utils.get_pdb_files(args.pdb_code)
-      pdb_files['pdbcif'] = args.pdb_file_path
+      modeldata = pdb_utils.ModelData(args=[args.pdb_code])
+      if 'pdbcif' not in pdb_files.keys() :
+        pdb_files = pdb_utils.get_pdb_files(args.pdb_code,pdbcif=True)
+      pdb_files['hklmtz'] = modeldata.mtz_file
       hklmtzfn = pdb_files['hklmtz']
       print >> log, '%s downloaded' % hklmtzfn
     elif args.hklmtz_fn :
