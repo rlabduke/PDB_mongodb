@@ -1,4 +1,5 @@
 import os,sys
+from phenix.automation.refinement import refinement_base, refinement_callback
 from iotbx.file_reader import any_file
 from iotbx import file_reader
 import iotbx.pdb
@@ -277,48 +278,17 @@ class MDB_PDB_validation(object) :
       for atomd in atomlist :
         self.residues[reskey].deposit_atom(mdb_utils.MDBAtom(**atomd))
 
-class ModelData(object) :
+class ModelData(refinement_base) :
 
-  def __init__(self,pdb_id,log=sys.stderr) :
-    self.pdb_id = pdb_id
-    self.log = log
+  def __init__(self, args=None, params=None, out=None,
+               tmp_dir=None, dest_dir=None, extra_args=()) :
+    super(ModelData, self).__init__(
+      args=args, params=params, out=out, tmp_dir=tmp_dir, dest_dir=dest_dir)
+
+  def run(self):
+    self.get_inputs()
     self.extract_model()
-    #self.extract_data()
-
-  def extract_model(self):
-    from mmtbx.wwpdb import utils as wwpdb_utils
-    from iotbx.pdb import hierarchy
-    self.pdb_file, self.mtz_file = wwpdb_utils.fetch_pdb_data(
-                                      self.pdb_id,verbose=True)
-    self.d_min = -sys.maxint
-    self.pdb_in = hierarchy.input(file_name=self.pdb_file)
-    self.crystal_symmetry = self.pdb_in.input.crystal_symmetry()
-    self.wavelength = self.pdb_in.input.extract_wavelength()
-    # XXX PDB-format specific, replace with direct calls pdb_input object
-    header_info = self.pdb_in.input.get_r_rfree_sigma()
-    if (header_info is not None) :
-      if (header_info.high is not None) :
-        self.d_min = header_info.high
-
-
-  def extract_data(self):
-    from mmtbx.wwpdb import utils as wwpdb_utils
-    self.filtered_data = wwpdb_utils.find_data_arrays(self.mtz_file,
-      merge_anomalous=False,
-      crystal_symmetry=self.crystal_symmetry,
-      log=self.log)
-    self.mtz_file_filtered = "%s_data.mtz" % self.pdb_id
-    self.filtered_data.write_mtz_file(self.mtz_file,
-      title="Filtered data",
-      single_dataset=True,
-      wavelength=self.wavelength)
-    self.d_min = max(self.d_min, self.filtered_data.f_obs.d_min())
-    self.data_labels = self.filtered_data.data_labels()
-    self.phases = self.filtered_data.phases
-    self.phase_labels = self.filtered_data.phase_labels()
-    print >> self.log, "  experimental data: %s" % self.data_labels
-    if (self.phases is not None) :
-      print >> self.log, "  experimental phases: %s" % self.phase_labels
+    self.extract_data()
 
 def get_pdb_files(pdb_code,pdbcif=False) :
   from mmtbx.command_line import fetch_pdb
