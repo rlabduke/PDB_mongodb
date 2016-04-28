@@ -23,6 +23,14 @@ def set_radius(d_min):
   else:                               atom_radius = 2.5
   return atom_radius
 
+def excise_unk_get_lines(pdb_file) :
+  lines = []
+  fle = open(pdb_file,'r')
+  for l in fle :
+    if ' UNK ' in l and l.strip().startswith('HETATM') : continue
+    lines.append(l.strip())
+  return lines
+
 def get_rscc_diff(pdb_file,reflection_file,high_resolution,log=None) :
   if not log : log = sys.stderr
   print >> log, '*' * 20 + '  rscc  ' + '*' * 20
@@ -47,8 +55,10 @@ def get_rscc_diff(pdb_file,reflection_file,high_resolution,log=None) :
   f_obs = data_and_flags.f_obs
   r_free_flags = data_and_flags.f_obs.array(
         data = flex.bool(data_and_flags.f_obs.size(), False))
+  pdb_lines = excise_unk_get_lines(inputs.pdb_file_names[0])
   xrs = iotbx.pdb.input(
-    file_name=inputs.pdb_file_names[0]).xray_structure_simple()
+    lines = pdb_lines).xray_structure_simple()
+    #file_name=inputs.pdb_file_names[0]).xray_structure_simple()
   fmodel = mmtbx.utils.fmodel_simple(
     f_obs=f_obs,
     r_free_flags=r_free_flags,
