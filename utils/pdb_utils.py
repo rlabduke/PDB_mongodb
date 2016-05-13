@@ -56,7 +56,6 @@ class MDB_PDB_validation(object) :
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
             self.residues[reskey] = MDBRes
-            #if residue.resseq_as_int() == 604 : print reskey
     #reskeys = self.residues.keys()
     #reskeys.sort()
     #for k in reskeys :
@@ -97,10 +96,6 @@ class MDB_PDB_validation(object) :
     reskey = [resd['pdb_id'],resd['model_id'],resd['chain_id']]
     reskey+= [resd['icode'].strip(),'%i'%resd['resseq'],'[a-zA-Z]']
     reskey+= [resd['resname']]
-    #rk = resd['pdb_id'] + resd['chain_id'] + resd['icode']
-    #rk+= str(resd['resseq']) + resd['altloc'] + '[a-zA-z]'
-    #rk+= resd['resname']
-    #rk = rk.replace(' ','')
     rk = ':'.join(reskey)
     mo = re.compile(rk)
     reskeys = []
@@ -120,8 +115,6 @@ class MDB_PDB_validation(object) :
         for clash in vc.result.results :
           clashatoms = []
           for i,atom in enumerate(clash.atoms_info) :
-            #print atom.atom_group_id_str() + atom.name
-            #print dir(atom);exit()
             resd = mdb_utils.get_resd(self.pdb_code,atom)
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
@@ -198,12 +191,10 @@ class MDB_PDB_validation(object) :
   def run_ramalyze(self) :
     from mmtbx.validation import ramalyze
     ramalyze_result = ramalyze.ramalyze(self.hierarchy)
-    for result in ramalyze_result.results : 
-      #print dir(result);sys.exit()
+    for result in ramalyze_result.results :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
-      #print reskey,reskey in self.residues.keys()
       if reskey not in self.residues.keys(): # alternates likely exist
         reskeys = self.get_alternate_keys(resd)
         for k in reskeys :
@@ -218,12 +209,10 @@ class MDB_PDB_validation(object) :
                                nontrans_only = False,
                                out           = sys.stdout,
                                quiet         = False)
-    for result in omegalyze_result.results : 
-      #print dir(result);sys.exit()
+    for result in omegalyze_result.results :
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
-      #print reskey,reskey in self.residues.keys()
       if reskey not in self.residues.keys(): # alternates likely exist
         reskeys = self.get_alternate_keys(resd)
         for k in reskeys :
@@ -240,12 +229,10 @@ class MDB_PDB_validation(object) :
                                quiet         = False)
     t = True
     for result in cablam_result.results :
-      #print dir(result);sys.exit()
       resd = mdb_utils.get_resd(self.pdb_code,result)
       MDBRes = mdb_utils.MDBResidue(**resd)
       reskey = MDBRes.get_residue_key()
       if not result.prevres : continue
-      #print reskey,reskey in self.residues.keys()
       if reskey in self.residues.keys() :
         self.residues[reskey].add_cablam_result(result)
       elif MDBRes.altloc != '' :
@@ -322,7 +309,6 @@ def get_pdb_hierarchy(pdb_file) :
 
 def get_pdb_summary(pdb_file) :
   hrcy = get_pdb_hierarchy(pdb_file)
-# for e in dir(hrcy) : print e
   d = {}
   for k,v in hrcy.overall_counts().resname_classes.items() :
     d[k] = v
