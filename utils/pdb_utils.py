@@ -93,15 +93,20 @@ class MDB_PDB_validation(object) :
       print >> log, s
 
   def get_alternate_keys(self,resd) :
-    reskey = []
-    rk = resd['pdb_id'] + resd['chain_id'] + resd['icode']
-    rk+= str(resd['resseq']) + resd['altloc'] + '[a-zA-z]'
-    rk+= resd['resname']
-    rk = rk.replace(' ','')
+    if resd['model_id'] == None : resd['model_id'] = ''
+    reskey = [resd['pdb_id'],resd['model_id'],resd['chain_id']]
+    reskey+= [resd['icode'].strip(),'%i'%resd['resseq'],'[a-zA-Z]']
+    reskey+= [resd['resname']]
+    #rk = resd['pdb_id'] + resd['chain_id'] + resd['icode']
+    #rk+= str(resd['resseq']) + resd['altloc'] + '[a-zA-z]'
+    #rk+= resd['resname']
+    #rk = rk.replace(' ','')
+    rk = ':'.join(reskey)
     mo = re.compile(rk)
+    reskeys = []
     for k in self.residues.keys() :
-      if mo.match(k) : reskey.append(k)
-    return reskey
+      if mo.match(k) : reskeys.append(k)
+    return reskeys
 
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
