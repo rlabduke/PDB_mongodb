@@ -32,6 +32,7 @@ def get_args() :
   if not args.validation_type : args.validation_type = 'all'
   if not args.detail : args.detail = 'file'
   assert args.detail in ['file','residue'],args.detail
+  if args.detail == 'file' : args.validation_type = 'clashscore'
   return args
 
 def run (out=sys.stdout, quiet=False) :
