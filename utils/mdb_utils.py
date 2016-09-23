@@ -60,6 +60,7 @@ class MDBResidue(object) :
   __slots__ = ['pdb_id','model_id','chain_id','icode']
   __slots__+= ['resseq','altloc','resname','atoms','resolution','restype']
   __slots__+= ['rotalyze','ramalyze','omegalyze','cablam','clashes']
+  __slots__+= ['bondlength']
 
   def __init__(self,**kwargs) :
     for key, value in kwargs.iteritems():
@@ -138,6 +139,22 @@ class MDBResidue(object) :
       worst_sc["Fo_DFc_value_min"] = self.get_min(Fo_DFc_values_sc)
 
     return worst_bb,worst_sc,worst_all
+
+  def add_bondlength_result(self,result,residue0,atom0,residue1,atom1) :
+    #print dir(result);exit()
+    # get the two res keys
+    if not hasattr(self,'bondlength') : self.bondlength = []
+    self.bondlength.append({
+        'residue0'   : residue0,
+        'atom0'      : atom0,
+        'residue1'   : residue1,
+        'atom1'      : atom1,
+        'is_outlier' : result.is_outlier(),
+        'sigma'      : result.sigma,
+        'score'      : result.score,
+        'ideal'      : result.target,
+        'model'      : result.model,
+        'delta'      : result.delta})
 
   def add_rotalyze_result(self,result) :
     #print dir(result);exit()
@@ -220,7 +237,7 @@ class MDBResidue(object) :
   def get_module_dict(self,module) :
     # module should point to a group_args object. This puts the contents
     # thereof into a dict.
-    assert module in ['rotalyze','ramalyze','omegalyze','cablam']
+    assert module in ['rotalyze','ramalyze','omegalyze','cablam','bondlength']
     regexob = re.compile('^__.*__')
     nd = {}
     modob = getattr(self,module)
@@ -263,6 +280,8 @@ class MDBResidue(object) :
       d['omegalyze'] = self.get_module_dict('omegalyze')
     if hasattr(self,'cablam') :
       d['cablam'] = self.cablam
+    if hasattr(self,'bondlength') :
+      d['bondlength'] = self.bondlength
     if hasattr(self,'clashes') :
       d['clashes'] = self.clashes
     return d

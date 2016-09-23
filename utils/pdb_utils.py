@@ -1,4 +1,6 @@
 import os,sys
+from mmtbx.command_line import load_model_and_data
+from mmtbx.command_line import generate_master_phil_with_inputs
 from phenix.automation.refinement import refinement_base, refinement_callback
 from iotbx.file_reader import any_file
 from iotbx import file_reader
@@ -8,15 +10,19 @@ import json
 import mdb_utils
 import re
 
+# here is all the validation types. to add a validation type, add the name
+# of the type to this list, add a function to run the analysis below (adding
+# the info into the object as appropriate), and then add the option to run it
+# in run_mongo_validation.py.
 validation_types = ['all','rna','clashscore','rotalyze','ramalyze']
-validation_types+= ['omegalyze','cablam','rscc']
+validation_types+= ['omegalyze','cablam','rscc','geometry']
 
 class MDB_PDB_validation(object) :
  
   __slots__ = ['pdb_file','hklmtz_file', 'set_mdb_document','run_validation']
   __slots__+= ['add_file','add_residue','mdb_document','result','mdb_document']
   __slots__+= ['residues','meta_data','detail','hierarchy','pdb_code']
-  __slots__+= ['do_flips','high_resolution']
+  __slots__+= ['do_flips','high_resolution','cmdline']
   def __init__(self,pdb_file,hklmtz_file,
                detail,high_resolution=None,mdb_document=None,pdb_code=None,
                do_flips=False) :
@@ -31,6 +37,15 @@ class MDB_PDB_validation(object) :
     if not pdb_code : self.pdb_code = 'N/A'
     pdb_in = file_reader.any_file(pdb_file)
     self.hierarchy = pdb_in.file_object.hierarchy
+    args = [self.pdb_file]
+    if self.hklmtz_file : args.append(self.hklmtz_file)
+    self.cmdline = load_model_and_data(
+      args=args,
+      master_phil=generate_master_phil_with_inputs(""),
+      require_data=False,
+      create_fmodel=True,
+      process_pdb_file=True,
+      prefer_anomalous=True)
     # keys are res ids and values are MDBResidue objects.
     if self.detail == 'residue' :
       self.initiate_residues()
@@ -42,7 +57,7 @@ class MDB_PDB_validation(object) :
   def initiate_residues(self) :
     print >> sys.stderr, 'initializing residues...\n'
     self.residues = {}
-    for chain in self.hierarchy.chains():
+    for chain in self.cmdline.pdb_hierarchy.chains():
       for residue_group in chain.residue_groups():
         for conformer in residue_group.conformers():
           for residue in conformer.residues():
@@ -102,6 +117,16 @@ class MDB_PDB_validation(object) :
     for k in self.residues.keys() :
       if mo.match(k) : reskeys.append(k)
     return reskeys
+
+  def get_res_key_and_atom(self, atom_info) :
+    resd  = mdb_utils.get_resd(self.pdb_code,atom_info)
+    MDBRes = mdb_utils.MDBResidue(**resd)
+    reskey = MDBRes.get_residue_key()
+    # since this is an atom there should be an alternat included if it exists
+    # thus there is no reason to check for alternates like we do with residues.
+    # if this assertion fails...happy hunting for why
+    assert reskey in self.residues.keys()
+    return reskey, atom_info.name 
 
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
@@ -173,6 +198,30 @@ class MDB_PDB_validation(object) :
     from val_rna import RNAvalidation
     vc = RNAvalidation(self.pdb_file,self.detail,self.mdb_document)
     self.mdb_document = vc.mdb_document
+
+  def run_geometry_validation(self) :
+    from mmtbx.validation import restraints
+    print 'hi'
+    restraints = restraints.combined(
+      pdb_hierarchy=self.cmdline.pdb_hierarchy,
+      xray_structure=self.cmdline.xray_structure,
+      geometry_restraints_manager=self.cmdline.geometry,
+      ignore_hd=True,
+      cdl=False)
+    restraints.bonds.show()
+    restraints.angles.show()
+    # get bond legth outlier data
+    for result in restraints.bonds.results :
+      print >> sys.stderr, dir(result)
+      # Since this is a bond length there are two atoms involved 
+      reskey0,name0 = self.get_res_key_and_atom(result.atoms_info[0])
+      reskey1,name1 = self.get_res_key_and_atom(result.atoms_info[1])
+      self.residues[reskey0].add_bondlength_result(result,reskey0,name0,
+                                                          reskey1,name1)
+      if reskey0 != reskey1 :
+        self.residues[reskey1].add_bondlength_result(result,reskey1,name1,
+                                                            reskey0,name0)
+    print >> sys.stderr, restraints.bonds.results
 
   def run_rotalyze(self) :
     from mmtbx.validation import rotalyze

@@ -141,6 +141,10 @@ def run (out=sys.stdout, quiet=False) :
       print >> log, 'Running real-space correlation...\n'
       validation_class.run_rscc()
 
+    if validation_type in ['geometry','all'] :
+      print >> log, 'Running geometry validation...\n'
+      validation_class.run_geometry_validation()
+
   if args.write_out_file :
     if args.outdir :
       bd = os.path.join(outdir,args.pdb_code[1:3])
