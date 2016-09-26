@@ -60,7 +60,7 @@ class MDBResidue(object) :
   __slots__ = ['pdb_id','model_id','chain_id','icode']
   __slots__+= ['resseq','altloc','resname','atoms','resolution','restype']
   __slots__+= ['rotalyze','ramalyze','omegalyze','cablam','clashes']
-  __slots__+= ['bondlength']
+  __slots__+= ['bondlength','angle']
 
   def __init__(self,**kwargs) :
     for key, value in kwargs.iteritems():
@@ -156,6 +156,26 @@ class MDBResidue(object) :
         'model'      : result.model,
         'delta'      : result.delta})
 
+  def add_angle_result(self,result,residue0,atom0,
+                                   residue1,atom1,
+                                   residue2,atom2) :
+    #print dir(result);exit()
+    # get the two res keys
+    if not hasattr(self,'angle') : self.angle = []
+    self.angle.append({
+        'residue0'   : residue0,
+        'atom0'      : atom0,
+        'residue1'   : residue1,
+        'atom1'      : atom1,
+        'residue2'   : residue2,
+        'atom2'      : atom2,
+        'is_outlier' : result.is_outlier(),
+        'sigma'      : result.sigma,
+        'score'      : result.score,
+        'ideal'      : result.target,
+        'model'      : result.model,
+        'delta'      : result.delta})
+
   def add_rotalyze_result(self,result) :
     #print dir(result);exit()
     chi_angles = result.chi_angles
@@ -237,7 +257,8 @@ class MDBResidue(object) :
   def get_module_dict(self,module) :
     # module should point to a group_args object. This puts the contents
     # thereof into a dict.
-    assert module in ['rotalyze','ramalyze','omegalyze','cablam','bondlength']
+    assert module in ['rotalyze','ramalyze','omegalyze','cablam',
+                      'bondlength','angle']
     regexob = re.compile('^__.*__')
     nd = {}
     modob = getattr(self,module)
@@ -282,6 +303,8 @@ class MDBResidue(object) :
       d['cablam'] = self.cablam
     if hasattr(self,'bondlength') :
       d['bondlength'] = self.bondlength
+    if hasattr(self,'angle') :
+      d['angle'] = self.angle
     if hasattr(self,'clashes') :
       d['clashes'] = self.clashes
     return d

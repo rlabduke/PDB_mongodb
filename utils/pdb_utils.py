@@ -201,18 +201,16 @@ class MDB_PDB_validation(object) :
 
   def run_geometry_validation(self) :
     from mmtbx.validation import restraints
-    print 'hi'
     restraints = restraints.combined(
       pdb_hierarchy=self.cmdline.pdb_hierarchy,
       xray_structure=self.cmdline.xray_structure,
       geometry_restraints_manager=self.cmdline.geometry,
       ignore_hd=True,
       cdl=False)
-    restraints.bonds.show()
     restraints.angles.show()
     # get bond legth outlier data
     for result in restraints.bonds.results :
-      print >> sys.stderr, dir(result)
+      #print >> sys.stderr, dir(result)
       # Since this is a bond length there are two atoms involved 
       reskey0,name0 = self.get_res_key_and_atom(result.atoms_info[0])
       reskey1,name1 = self.get_res_key_and_atom(result.atoms_info[1])
@@ -221,7 +219,27 @@ class MDB_PDB_validation(object) :
       if reskey0 != reskey1 :
         self.residues[reskey1].add_bondlength_result(result,reskey1,name1,
                                                             reskey0,name0)
-    print >> sys.stderr, restraints.bonds.results
+    for result in restraints.angles.results :
+      #print >> sys.stderr, dir(result)
+      # Since this is a angle there are three atoms involved 
+      reskey0,name0 = self.get_res_key_and_atom(result.atoms_info[0])
+      reskey1,name1 = self.get_res_key_and_atom(result.atoms_info[1])
+      reskey2,name2 = self.get_res_key_and_atom(result.atoms_info[2])
+      # The logic that follows inserts the angle outlier info into the
+      # two or one residue[s] involved. At least two of the three residues
+      # will be the same residue.
+      self.residues[reskey0].add_angle_result(result,reskey0,name0,
+                                                     reskey1,name1,
+                                                     reskey2,name2)
+      if reskey0 != reskey1 :
+        self.residues[reskey1].add_angle_result(result,reskey1,name1,
+                                                       reskey0,name0,
+                                                       reskey2,name2)
+      elif reskey0 != reskey2 :
+        self.residues[reskey2].add_angle_result(result,reskey2,name2,
+                                                       reskey1,name1,
+                                                       reskey0,name0)
+
 
   def run_rotalyze(self) :
     from mmtbx.validation import rotalyze
