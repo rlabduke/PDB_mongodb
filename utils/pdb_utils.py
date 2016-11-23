@@ -70,6 +70,7 @@ class MDB_PDB_validation(object) :
                     'resname'    : residue.resname}
             MDBRes = mdb_utils.MDBResidue(**resd)
             reskey = MDBRes.get_residue_key()
+            #print >> sys.stdout, reskey
             self.residues[reskey] = MDBRes
     #reskeys = self.residues.keys()
     #reskeys.sort()
@@ -118,15 +119,16 @@ class MDB_PDB_validation(object) :
       if mo.match(k) : reskeys.append(k)
     return reskeys
 
-  def get_res_key_and_atom(self, atom_info) :
+  def get_res_key_and_atom(self, atom_info, alt) :
     resd  = mdb_utils.get_resd(self.pdb_code,atom_info)
+    if alt : resd['altloc'] = alt[resd['resseq']]
     MDBRes = mdb_utils.MDBResidue(**resd)
     reskey = MDBRes.get_residue_key()
-    # since this is an atom there should be an alternat included if it exists
-    # thus there is no reason to check for alternates like we do with residues.
-    # if this assertion fails...happy hunting for why
-    assert reskey in self.residues.keys()
-    return reskey, atom_info.name 
+    #assert reskey in self.residues.keys(), reskey+'  '+atom_info.name
+    if reskey not in self.residues.keys() : # the residue has alts
+      reskeys = self.get_alternate_keys(resd)
+    else : reskeys = [reskey]
+    return reskeys, atom_info.name 
 
   def run_clashscore_validation(self) :
     from val_clashscore import CLASHSCOREvalidation
@@ -199,6 +201,22 @@ class MDB_PDB_validation(object) :
     vc = RNAvalidation(self.pdb_file,self.detail,self.mdb_document)
     self.mdb_document = vc.mdb_document
 
+  def get_alt_if_any(self,atoms_info) :
+    alt = None
+    for atom_info in atoms_info :
+      resd  = mdb_utils.get_resd(self.pdb_code,atom_info)
+      resseq,altloc = resd['resseq'],resd['altloc']
+      if alt is None : alt = {resseq:altloc}
+      # This function is used for seeing if there are alternates in a list of 
+      # atoms involved in an angle or length measure so if there is an altloc
+      # they should be the same if they have the same resseq.
+      else :
+        if resseq in alt.keys():
+          if alt[resseq] != altloc and alt[resseq] == '' : alt[resseq] = altloc
+          if altloc != '': assert alt[resseq]==altloc, altloc + '   ' + str(alt)
+        else : alt[resd['resseq']] = resd['altloc']
+    return alt
+
   def run_geometry_validation(self) :
     from mmtbx.validation import restraints
     restraints = restraints.combined(
@@ -211,34 +229,44 @@ class MDB_PDB_validation(object) :
     # get bond legth outlier data
     for result in restraints.bonds.results :
       #print >> sys.stderr, dir(result)
+      # Since cases can exist where one of the atoms have an alt and the other
+      # does not, wee need to check if any of the participating atoms have
+      # alts.
+      alt = self.get_alt_if_any(result.atoms_info)
       # Since this is a bond length there are two atoms involved 
-      reskey0,name0 = self.get_res_key_and_atom(result.atoms_info[0])
-      reskey1,name1 = self.get_res_key_and_atom(result.atoms_info[1])
-      self.residues[reskey0].add_bondlength_result(result,reskey0,name0,
-                                                          reskey1,name1)
+      reskeys0,name0 = self.get_res_key_and_atom(result.atoms_info[0],alt)
+      reskeys1,name1 = self.get_res_key_and_atom(result.atoms_info[1],alt)
+      for reskey0 in reskeys0 :
+        for reskey1 in reskeys1 :
+          self.residues[reskey0].add_bondlength_result(result,reskey0,name0,
+                                                              reskey1,name1)
       if reskey0 != reskey1 :
         self.residues[reskey1].add_bondlength_result(result,reskey1,name1,
                                                             reskey0,name0)
     for result in restraints.angles.results :
       #print >> sys.stderr, dir(result)
+      alt = self.get_alt_if_any(result.atoms_info)
       # Since this is a angle there are three atoms involved 
-      reskey0,name0 = self.get_res_key_and_atom(result.atoms_info[0])
-      reskey1,name1 = self.get_res_key_and_atom(result.atoms_info[1])
-      reskey2,name2 = self.get_res_key_and_atom(result.atoms_info[2])
+      reskeys0,name0 = self.get_res_key_and_atom(result.atoms_info[0],alt)
+      reskeys1,name1 = self.get_res_key_and_atom(result.atoms_info[1],alt)
+      reskeys2,name2 = self.get_res_key_and_atom(result.atoms_info[2],alt)
       # The logic that follows inserts the angle outlier info into the
       # two or one residue[s] involved. At least two of the three residues
       # will be the same residue.
-      self.residues[reskey0].add_angle_result(result,reskey0,name0,
-                                                     reskey1,name1,
-                                                     reskey2,name2)
-      if reskey0 != reskey1 :
-        self.residues[reskey1].add_angle_result(result,reskey1,name1,
-                                                       reskey0,name0,
-                                                       reskey2,name2)
-      elif reskey0 != reskey2 :
-        self.residues[reskey2].add_angle_result(result,reskey2,name2,
-                                                       reskey1,name1,
-                                                       reskey0,name0)
+      for reskey0 in reskeys0 :
+        for reskey1 in reskeys1 :
+          for reskey2 in reskeys2 :
+            self.residues[reskey0].add_angle_result(result,reskey0,name0,
+                                                           reskey1,name1,
+                                                           reskey2,name2)
+            if reskey0 != reskey1 :
+              self.residues[reskey1].add_angle_result(result,reskey1,name1,
+                                                             reskey0,name0,
+                                                             reskey2,name2)
+            elif reskey0 != reskey2 :
+              self.residues[reskey2].add_angle_result(result,reskey2,name2,
+                                                             reskey1,name1,
+                                                             reskey0,name0)
 
 
   def run_rotalyze(self) :
